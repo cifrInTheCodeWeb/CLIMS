@@ -1,0 +1,4815 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Parameter optimizer of cardiovascular lumped parameter model</title>
+    <style>
+        body {
+            margin: 0;
+            background: #f0f3f6;
+            font-family: Arial;
+        }
+
+        #toolbar {
+            background: #2c3e50;
+            padding: 12px;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* #toolbar button {
+            padding: 8px 16px;
+            background: #3498db;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #toolbar button:hover {
+            background: #2980b9;
+        } */
+        #toolbar button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #toolbar button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 10px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+
+        #toolbar button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .canvas-window {
+            margin: 20px;
+            /* 容器外部留白，与页面其他元素保持距离 */
+            background: white;
+            /* 背景色为白色，提供清晰的内容展示区域 */
+            border-radius: 8px;
+            /* 圆角设计，使容器外观更柔和 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            /* 微妙的阴影效果，增强视觉层次感 */
+            overflow: auto;
+            /* 当内容超出容器尺寸时，自动显示滚动条 */
+            animation: fadeIn 0.3s ease-out;
+            /* 淡入动画，提升加载体验 */
+
+            /* 尺寸控制 */
+            /* min-width: 1200px; */
+            /* 最小宽度，确保内容有足够空间展示 */
+            /* min-height: 1200px; */
+            width: 95vw;
+            /* 宽度为视口宽度的90%，保持响应式 */
+            height: 90vh;
+            /* max-width: 3000px; */
+            /* 最大宽度限制，防止在超大屏幕上过度拉伸 */
+            /* max-height: 2000px; */
+
+
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .menu-item {
+            font-size: 13px;
+            padding: 8px 20px;
+            /* line-height: 1.3; */
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #f8f9fa;
+        }
+
+        .dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            /* padding: 24px; */
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+        }
+
+        .dialog button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .dialog input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 8px 0;
+            width: 80%;
+        }
+
+        .dialog select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+        }
+
+        #plotContainer {
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        /* 预览光标样式 */
+        .component-preview {
+            position: absolute;
+            /* 改为绝对定位 */
+            pointer-events: none;
+            opacity: 0.7;
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+            transform: translate(0, 0);
+            /* 清除之前可能的transform */
+
+        }
+
+        /* 旋转提示 */
+        #rotation-hint {
+            position: fixed;
+            bottom: 8px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* 新增十字光标样式 */
+        /* .crosshair-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><path d="M20 0v40M0 20h40" stroke="%23ff4444" stroke-width="2"/></svg>') no-repeat center;
+            z-index: 1001;
+            display: none;
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+        }
+        /* 新增样式：延伸到边缘的十字光标 */
+        /* 改进的十字光标 */
+        /* 改进的十字光标样式 */
+        .crosshair-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><path d="M20 0v40M0 20h40" stroke="%23ff4444" stroke-width="2"/></svg>') no-repeat center;
+            z-index: 1001;
+            --cursor-x: 0px;
+            --cursor-y: 0px;
+        }
+
+        .crosshair-horizontal {
+            position: fixed;
+            width: 100%;
+            height: 1px;
+            background-image: repeating-linear-gradient(to right,
+                    #333 0px,
+                    #333 4px,
+                    transparent 4px,
+                    transparent 8px);
+            top: var(--cursor-y);
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .crosshair-vertical {
+            position: fixed;
+            height: 100%;
+            width: 1px;
+            background-image: repeating-linear-gradient(to bottom,
+                    #333 0px,
+                    #333 4px,
+                    transparent 4px,
+                    transparent 8px);
+            left: var(--cursor-x);
+            top: 0;
+            transform: translateX(-50%);
+        }
+
+
+
+
+        /* 新增样式6/10 */
+        .draggable-dialog {
+            position: fixed;
+            z-index: 1002;
+            /* 确保在上下文菜单之上 */
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            display: none;
+            min-width: 400px;
+        }
+
+        .dialog-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dialog-body {
+            padding: 5px;
+        }
+
+        .dialog-footer {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #textCommandInput {
+            width: 90%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-top: 10px;
+            resize: vertical;
+        }
+
+        .hint {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        #textCommandDialog button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .save-btn {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .cancel-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* 电流流向样式 */
+        .current-arrow-cursor {
+            position: fixed;
+            width: 32px;
+            height: 32px;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M4,16 L28,16" stroke="%23e74c3c" stroke-width="3" stroke-linecap="round"/><path d="M22,10 L28,16 L22,22" fill="none" stroke="%23e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="%23e74c3c"/></svg>') no-repeat center;
+            background-size: contain;
+            z-index: 1001;
+            display: none;
+        }
+
+        /* 针尖笔光标样式 */
+        .pin-cursor {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3,17.25V21h3.75L17.81,9.94l-3.75-3.75L3,17.25z M20.71,7.04c.39-.39,.39-1.02,0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41,0l-1.83,1.83,3.75,3.75,1.83-1.83Z" fill="%233498db"/></svg>') no-repeat center;
+            background-size: contain;
+            z-index: 1002;
+            display: none;
+        }
+
+        /* 示波器窗口样式 */
+        .draggable-dialog {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            min-width: 500px;
+            min-height: 400px;
+            overflow: hidden;
+            z-index: 1001;
+        }
+
+        .dialog-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .window-controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 8px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .window-controls button:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .oscilloscope-controls {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .oscilloscope-controls button {
+            padding: 5px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .oscilloscope-display {
+            position: relative;
+            height: calc(100% - 40px);
+            padding: 10px;
+        }
+
+        .oscilloscope-canvas {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: 1px solid #eee;
+        }
+
+        /* 最小化项样式 */
+        .minimized-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        .minimized-item:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        /* 文件名显示区域 */
+        #fileNameDisplay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            color: #2c3e50;
+            z-index: 100;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            border: 1px solid linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+        }
+
+        #fileNameDisplay::before {
+            content: "📄";
+            margin-right: 8px;
+            font-size: 16px;
+        }
+    </style>
+    <script src="node_modules/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+    <div id="fileNameDisplay">unnamed</div>
+    <div id="toolbar">
+        <button onclick="CircuitDesigner.newProject()">New</button>
+        <button onclick="CircuitDesigner.openFile()">Open</button>
+        <button disabled onclick="CircuitDesigner.toggleGrid()" id="gridToggle">Show grid</button> <!-- 新增按钮 -->
+        <button disabled id="simuSetBtn" onclick="CircuitDesigner.showParamDialog()">Simulation setting</button>
+        <button disabled id="runBtn" title="Running simulation" onclick="CircuitDesigner.run()">Run</button>
+        <button disabled id="tuneBtn" title="Adjust model parameters" onclick="CircuitDesigner.tune()">Tune</button>
+        <button disabled id="loadBtn" title="load Or UnloadSimulatedData"
+            onclick="CircuitDesigner.toggleLoadUnload()">Load</button>
+        <form id="myForm"><input type="file" id="fileInput" hidden accept=".json">
+            <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
+                onchange="CircuitDesigner.handleCsvFileSelect(this.files[0])">
+        </form>
+        <button disabled id="textCommandBtn" title="Text command" onclick="CircuitDesigner.showTextCommandDialog()">
+            <span>.t</span>
+        </button>
+        <button id="plotBtn" title="Select waveform" disabled onclick="CircuitDesigner.showVarSelector()">
+            <svg style="width:20px;height:20px" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M2,2H4V20H22V22H2V2M6,8H8V14H6V8M10,4H12V18H10V4M14,10H16V16H14V10M18,6H20V12H18V6" />
+            </svg>
+        </button>
+        <button disabled id="copyBtn" title="Copy structure" onclick="CircuitDesigner.enterCopyMode()">
+            <svg style="width:20px;height:20px" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+            </svg>
+        </button>
+        <button disabled id="moveBtn" title="Move Copy structure" onclick="CircuitDesigner.enterMoveMode()">
+            <svg style="width:20px;height:20px" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M13,6V11H18V7.75L22.25,12L18,16.25V13H13V18H16.25L12,22.25L7.75,18H11V13H6V16.25L1.75,12L6,7.75V11H11V6H7.75L12,1.75L16.25,6H13Z" />
+            </svg>
+        </button>
+
+        <button disabled id="deleteBtn" title="Delete Copy structure" onclick="CircuitDesigner.enterDeleteMode()">
+            <svg style="width:20px;height:20px" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+        </button>
+
+    </div>
+    <div id="contextMenu" class="context-menu">
+        <div class="menu-item" data-type="resistor">resistance</div>
+        <div class="menu-item" data-type="capacitor">capacitor</div>
+        <div class="menu-item" data-type="inductor">inductor</div>
+        <div class="menu-item" data-type="diode">diode</div>
+        <div class="menu-item" data-type="voltage">voltage</div>
+        <div class="menu-item" data-type="BVoltage">BVoltage</div>
+        <div class="menu-item" data-type="ground">ground</div>
+        <div class="menu-item" data-type="label">label</div>
+        <div class="menu-item" data-type="wire">wire</div>
+    </div>
+
+    <div id="propDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Component feature</span>
+            <button class="close-btn" onclick="CircuitDesigner.closePropDialog()">×</button>
+        </div>
+        <div class="dialog-body">
+            <label>name：<input id="compName" placeholder="Name (such as R1)"></label>
+            <label>value：<input id="compValue" placeholder="Value"></label>
+        </div>
+
+        <div class="dialog-footer">
+            <button class="save-btn" onclick="CircuitDesigner.saveComponentProps()">save</button>
+            <button class="cancel-btn" onclick="CircuitDesigner.closePropDialog()">cancel</button>
+        </div>
+    </div>
+
+    <div id="paramDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Simulation parameter setting</span>
+            <button class="close-btn" onclick="CircuitDesigner.closeParamDialog()">×</button>
+        </div>
+        <div class="dialog-body">
+            <label>stopTime: <input id="stopTime"></label>
+        </div>
+        <div class="dialog-body">
+            <label>maxStep: <input id="maxStep"></label>
+        </div>
+        <div class="dialog-body">
+            <label>saveTime: <input id="saveTime"></label>
+        </div>
+
+
+        <div class="dialog-footer">
+            <button class="save-btn" onclick="CircuitDesigner.saveParams()">save</button>
+            <button class="cancel-btn" onclick="CircuitDesigner.closeParamDialog()">cancel</button>
+        </div>
+    </div>
+    <!-- 文本命令对话框 -->
+    <div id="textCommandDialog" class="draggable-dialog">
+        <div class="dialog-header">
+            <span>Text Command</span>
+            <button class="close-btn" onclick="CircuitDesigner.closeTextCommandDialog()">×</button>
+        </div>
+        <div class="dialog-body">
+            <p class="hint">Please enter spice control command; Shift+ Enter to start a new line.</p>
+            <textarea id="textCommandInput"></textarea>
+        </div>
+        <div class="dialog-footer">
+            <button class="save-btn" onclick="CircuitDesigner.saveTextCommand()">save</button>
+            <button class="cancel-btn" onclick="CircuitDesigner.closeTextCommandDialog()">cancel</button>
+        </div>
+    </div>
+    <!-- <div id="crosshairCursor" class="crosshair-cursor"></div> -->
+    <!-- 修改十字光标结构 -->
+    <div id="crosshairCursor" class="crosshair-cursor" style="display:none;">
+        <div class="crosshair-horizontal"></div>
+        <div class="crosshair-vertical"></div>
+    </div>
+
+    <!-- 电流箭头光标 -->
+    <div id="currentArrowCursor" class="current-arrow-cursor"></div>
+
+    <!-- 针尖笔光标 -->
+    <div id="pinCursor" class="pin-cursor"></div>
+
+    <!-- 添加复制模式指示器 -->
+    <!-- <div id="copyIndicator"
+        style="display:none; position:fixed; pointer-events:none; z-index:10000; font-size:24px; color:#3498db">+</div> -->
+    <!-- 在body底部添加 -->
+    <!-- 示波器最小化面板（固定在右下角） -->
+    <div id="minimizedPanel"
+        style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column-reverse; gap: 5px; z-index: 1000;">
+    </div>
+
+    <!-- 示波器窗口模板 -->
+    <div id="oscilloscopeTemplate" class="draggable-dialog" style="display: none;">
+        <div class="dialog-header">
+            <span class="dialog-title">scope - <span class="var-name"></span></span>
+            <div class="window-controls">
+                <button class="minimize-btn" title="minimize">-</button>
+                <button class="close-btn" title="close">×</button>
+            </div>
+        </div>
+        <div class="dialog-body">
+            <div class="oscilloscope-controls">
+                <button class="zoom-in">+</button>
+                <button class="zoom-out">-</button>
+                <button class="pan-left">←</button>
+                <button class="pan-right">→</button>
+                <button class="reset-view">↺</button>
+            </div>
+            <div class="oscilloscope-display">
+                <canvas class="oscilloscope-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ================== 电路设计器核心模块 ==================
+        const CircuitDesigner = (() => {
+
+
+            //示波器功能代码
+            //          let oscilloscopes= []; // 存储所有示波器实例
+            // let minimizedOscilloscopes= []; // 存储最小化的示波器实例
+
+            //加载仿真数据后，悬停组件、引脚点相关代码
+            let hoveredComponent = null; // 当前悬停的组件
+            let hoveredPin = null;        // 当前悬停的引脚点
+
+
+            //移动删除功能变量
+            let moveMode = false;
+            let deleteMode = false;
+            let moveIndicator = null; // 移动模式光标
+            let deleteIndicator = null; // 删除模式光标
+
+
+            //复制功能变量
+            let copyMode = false;
+            let rectStartPoint = null;
+            let currentRect = null;
+            let copiedComponents = [];
+            let copiedWires = [];
+            let isRectDragging = false;
+            let isPlacingGroup = false;
+            let copyIndicator = null;
+
+
+            //拖拽画布变量
+            let isPanning = false;
+            let panStartX = 0, panStartY = 0;
+            let startScrollX = 0, startScrollY = 0;
+
+            // 在模块顶部添加常量
+            const PLOT_COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6'];
+
+            let draggingWire = null; // 当前拖拽的导线
+            let draggingEndpoint = null; // 当前拖拽的导线端点
+            let hoveredWire = null;   // 鼠标悬停的导线
+            let hoveredEndpoint = null; // 鼠标悬停的端点
+
+            let previewLine = null; // 预览线段坐标
+            let currentDirection = null; // 当前连线方向
+
+            // 在CircuitDesigner模块顶部添加
+            const ComponentMeta = {
+                resistor: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
+                capacitor: { pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }] },
+                inductor: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
+                diode: { pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }] },
+                voltage: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
+                BVoltage: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
+                ground: { pins: [{ x: 0, y: 0 }] }, label: { pins: [{ x: 0, y: 0 }] }
+            };
+            // 在模块顶部添加状态变量
+            let gridVisible = true; // 新增网格可见状态
+
+            // 修改网格参数为元件适配
+            const GRID_SIZE = 16; // 从40改为45，使元件引脚间距(90px)正好占2个网格
+            const PIN_RADIUS = 4;
+            let currentCanvas = null;
+            let currentContext = null;
+            let currentMode = 'normal';
+            let currentComponent = null;
+            let selectedComponent = null;
+            let wirePoints = [];
+
+            // 在模块顶部添加状态变量
+            let currentRotation = 0; // 当前旋转角度(0/90/180/270)
+            let previewComp = null;  // 预览元件
+            let isPlacing = false;   // 是否处于放置模式
+
+            // 在CircuitDesigner模块顶部添加状态变量
+            let wireMode = 'start'; // start/drawing
+            let currentWirePath = [];
+            let wireStartPoint = null;
+            //磁吸效果变量
+            let draggingComponent = null;
+            let dragOffset = { x: 0, y: 0 };
+
+            const MAGNETIC_STRENGTH = 0.7; // 吸附强度系数 (0.1-0.5)
+            const SNAP_THRESHOLD = GRID_SIZE * 0.4; // 完全吸附阈值
+
+            let state = {
+                fileName: null,
+                components: [],
+                wires: [],
+                params: { stopTime: "1e-3", maxStep: "", saveTime: "" },
+                counters: { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 },
+                selected: { wire: null, component: null }, // 新增选中状态
+                elementStack: [], // 存储元素层级顺序 [{type:'wire',id}, {type:'comp',id}]
+                nodeInfo: {},// 新增节点信息存储
+                simulatedData: {},
+                textCommand: "", // 新增文本命令存储
+                selectedVars: [],
+                plotWindow: null,
+                //示波器代码
+                oscilloscopes: [], // 存储所有示波器实例
+                minimizedOscilloscopes: [], // 存储最小化的示波器实例
+                currentZIndex: 1000, // 初始 z-index 值
+                targetCurves: null,
+            };
+
+            function drawWireEndpoints(wire) {
+                const ctx = currentContext;
+                const endpointCounts = getEndpointCounts();
+                [wire.points[0], wire.points[1]].forEach((p, i) => {
+                    const count = endpointCounts.get(`${p.x},${p.y}`) || 0;
+                    // 刚好两个端点时隐藏
+                    if (count === 2) return;
+                    // 绘制红色警示背景
+                    if (isPointIllegal(p)) {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, PIN_RADIUS + 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 默认黑色圆点
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, PIN_RADIUS, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 悬停高亮
+                    if (currentMode === 'normal') {
+                        const isThisEndpoint = hoveredEndpoint?.wire === wire &&
+                            hoveredEndpoint?.index === i;
+                        if (isThisEndpoint) {
+                            ctx.fillStyle = '#00BFFF';
+                            ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+                        }
+                    }
+                });
+            }
+
+            // 新增旋转控制函数
+            // 修复问题2：旋转逻辑
+            function handleKeyDown(e) {
+                if (e.key === 'Delete' && currentMode === 'normal') {
+                    e.stopPropagation();
+
+                    // 导线删除
+                    if (state.selected.wire) {
+                        state.wires = state.wires.filter(w => w !== state.selected.wire);
+                        state.selected.wire = null;
+                        redraw();
+                        return;
+                    }
+
+                    // 元件删除
+                    if (state.selected.component) {
+                        state.components = state.components.filter(c => c !== state.selected.component);
+                        //组件的节点信息也要对应删除
+                        delete state.nodeInfo[state.selected.component.name]
+                        state.selected.component = null;
+                        redraw();
+                    }
+                    //删除组件之后要更新计数器
+                    updateCounters(state.components);
+                }
+                if (e.ctrlKey && e.key === 'r') {
+                    e.preventDefault();
+                    currentRotation = (currentRotation + 90) % 360;
+                    redrawPreview();
+                }
+            }
+            document.addEventListener('keydown', handleKeyDown);
+
+            // ========== 新增的网格绘制函数 ==========
+            // 修改后的drawGrid函数
+            function drawGrid() {
+                if (!gridVisible) return;
+
+                currentContext.strokeStyle = '#f0f0f0';
+                currentContext.lineWidth = 0.5;
+
+                // 修正1：计算完整网格范围
+                const visibleWidth = currentCanvas.width + GRID_SIZE * 4;  // 扩展可见区域
+                const visibleHeight = currentCanvas.height + GRID_SIZE * 4;
+
+                // 修正2：调整循环终止条件为 <=
+                // 绘制垂直线（覆盖滚动缓冲）
+                for (let x = -GRID_SIZE * 2; x <= visibleWidth; x += GRID_SIZE) {
+                    currentContext.beginPath();
+                    currentContext.moveTo(x, -GRID_SIZE * 2);
+                    currentContext.lineTo(x, visibleHeight);
+                    currentContext.stroke();
+                }
+
+                // 绘制水平线（覆盖滚动缓冲）
+                for (let y = -GRID_SIZE * 2; y <= visibleHeight; y += GRID_SIZE) {
+                    currentContext.beginPath();
+                    currentContext.moveTo(-GRID_SIZE * 2, y);
+                    currentContext.lineTo(visibleWidth, y);
+                    currentContext.stroke();
+                }
+            }
+            // 新增网格切换方法
+            const toggleGrid = () => {
+                gridVisible = !gridVisible;
+                document.getElementById('gridToggle').textContent =
+                    gridVisible ? 'Hidden grid' : 'Show grid';
+                redraw();
+            };
+
+            // ========== 初始化画布 ==========
+            function initCanvas(canvas) {
+                canvas.width = 4800;  // 宽度调整为2000像素
+                canvas.height = 6400; // 高度调整为1200像素
+                currentContext = canvas.getContext('2d');
+                currentCanvas = canvas;
+                // 新增: 获取画布容器
+                const canvasWindow = canvas.parentNode;
+                document.addEventListener('click', (e) => {
+                    const menu = document.getElementById('contextMenu');
+                    if (!menu.contains(e.target)) {
+                        menu.style.display = 'none';
+                    }
+                });
+
+                canvas.addEventListener('mousedown', handleCanvasClick);
+                canvas.addEventListener('contextmenu', handleRightClick);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('mousedown', e => {
+                    //打开示波器代码，且保证此时没有在拖拽组件
+                    if (state.simulatedData.time && currentMode === 'normal' && e.button === 0) {
+                        // 引脚点点击
+                        if (hoveredPin) {
+                            const comp = hoveredPin.component;
+                            const pinIndex = hoveredPin.index;
+
+                            // 获取引脚点名称（node1或node2的变量值）
+                            const pinName = getPinName(comp, pinIndex).toLowerCase();
+                            const VName = `V(${pinName})`;
+
+                            // 调用特殊方法
+                            plotSimulatedData(VName);
+                            return; // 阻止后续处理
+                        }
+
+                        // 组件主体点击
+                        if (hoveredComponent) {
+                            const compName = hoveredComponent.name;
+                            const IName = `I(${compName})`;
+                            // 调用特殊方法
+                            plotSimulatedData(IName);
+                            return; // 阻止后续处理
+                        }
+                    }
+
+                    // 新增模式判断：仅在normal模式允许拖拽
+                    if (currentMode !== 'normal') return;
+                    const pos = getCanvasPos(e);
+                    const comp = findComponentAt(pos);
+                    // 清除所有悬停状态（新增）
+                    hoveredWire = null;
+                    hoveredEndpoint = null;
+                    state.selected.component = null;
+                    state.selected.wire = null;
+
+
+                    // 优先处理导线端点拖拽
+                    // 优先处理当前导线的端点（新增过滤条件）
+                    hoveredEndpoint = findWireEndpoint(pos);
+                    if (hoveredEndpoint) {
+                        state.selected.wire = hoveredEndpoint.wire;
+                        draggingEndpoint = {
+                            wire: hoveredEndpoint.wire, // 只处理当前导线
+                            pointIndex: hoveredEndpoint.index,
+                            fixedPoint: hoveredEndpoint.index === 0 ?
+                                hoveredEndpoint.wire.points[1] :
+                                hoveredEndpoint.wire.points[0]
+                        };
+                        return;
+                    }
+
+                    // 处理导线整体拖拽
+                    const currentWire = findWireAt(pos);
+                    if (currentWire) {
+                        state.selected.wire = currentWire;
+                        draggingWire = {
+                            wire: currentWire, // 明确指定当前操作导线
+                            startX: currentWire.points[0].x,
+                            startY: currentWire.points[0].y,
+                            offsetX: pos.x - currentWire.points[0].x,
+                            offsetY: pos.y - currentWire.points[0].y
+                        };
+                        return;
+                    }
+
+                    // 原有元件拖拽逻辑
+                    if (comp) {
+                        draggingComponent = comp;
+                        dragOffset = { x: pos.x - comp.x, y: pos.y - comp.y };
+                    }
+                    // 处理画布拖拽逻辑（新增部分）
+                    if (currentMode === 'normal' && e.button === 0) {
+                        const pos = getCanvasPos(e);
+                        const comp = findComponentAt(pos);
+                        const wire = findWireAt(pos);
+                        const endpoint = findWireEndpoint(pos);
+
+                        // 确保点击的是空白区域
+                        if (!comp && !wire && !endpoint) {
+                            isPanning = true;
+                            panStartX = e.clientX;
+                            panStartY = e.clientY;
+
+                            // 获取当前画布容器的滚动位置
+                            startScrollX = canvasWindow.scrollLeft;
+                            startScrollY = canvasWindow.scrollTop;
+
+                            // 更改鼠标样式
+                            // canvas.style.cursor = 'grabbing';
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+                });
+
+                canvas.addEventListener('mousemove', e => {
+                    // 处理画布拖拽移动（新增部分）
+                    if (isPanning) {
+                        // 计算正确的拖拽距离（使用相对移动量）
+                        const dx = e.clientX - panStartX;
+                        const dy = e.clientY - panStartY;
+
+                        // 更新滚动位置（使用减法实现自然拖拽方向）
+                        canvasWindow.scrollLeft = startScrollX - dx;
+                        canvasWindow.scrollTop = startScrollY - dy;
+
+                        e.preventDefault();
+                        return;
+                    }
+                    const pos = getCanvasPos(e); // 新增这行获取位置
+
+
+                    // // 导线端点悬停检测
+                    // // 优先检测端点悬停
+                    // hoveredEndpoint = findWireEndpoint(pos);
+                    // // 如果没有悬停在端点，再检测导线悬停
+                    // hoveredWire = hoveredEndpoint ? null : findWireAt(pos);
+                    // 处理导线整体拖拽
+                    // 优先处理导线整体拖拽
+                    if (draggingWire) {
+                        const wire = draggingWire.wire;
+                        const dx = pos.x - draggingWire.offsetX - wire.points[0].x;
+                        const dy = pos.y - draggingWire.offsetY - wire.points[0].y;
+
+                        wire.points.forEach(p => { p.x += dx; p.y += dy; });
+
+                        // 锁定选中状态并清除悬停
+                        state.selected.wire = wire;
+                        state.selected.component = null;
+                        hoveredWire = null;
+                        hoveredEndpoint = null;
+                        redraw();
+                        return; // 阻止后续处理
+                    }
+
+                    // 处理导线端点拖拽
+                    if (draggingEndpoint) {
+                        const wire = draggingEndpoint.wire;
+                        const fixed = draggingEndpoint.fixedPoint;
+                        const movedPoint = wire.points[draggingEndpoint.pointIndex];
+
+                        // 判断导线原始方向
+                        const isHorizontal = wire.points[0].y === wire.points[1].y;
+
+
+                        if (isHorizontal) {
+                            // 计算原始长度和新长度
+                            const originalLength = Math.abs(wire.points[1].x - wire.points[0].x);
+                            let newX = pos.x;
+
+                            // 应用最小长度限制
+                            const minLength = GRID_SIZE; // 1个网格单位
+                            const deltaX = Math.abs(newX - fixed.x);
+
+                            if (deltaX < minLength) {
+                                // 保持最小长度并磁吸到网格
+                                newX = fixed.x + (newX > fixed.x ? minLength : -minLength);
+                                newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+                            }
+
+                            // 更新坐标并保持Y轴对齐
+                            movedPoint.x = newX;
+                            movedPoint.y = fixed.y;
+                        } else {
+                            // 垂直导线处理
+                            const originalLength = Math.abs(wire.points[1].y - wire.points[0].y);
+                            let newY = pos.y;
+
+                            // 应用最小长度限制
+                            const minLength = GRID_SIZE;
+                            const deltaY = Math.abs(newY - fixed.y);
+
+                            if (deltaY < minLength) {
+                                newY = fixed.y + (newY > fixed.y ? minLength : -minLength);
+                                newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+                            }
+
+                            // 更新坐标并保持X轴对齐
+                            movedPoint.x = fixed.x;
+                            movedPoint.y = newY;
+                        }
+
+                        // 锁定选中状态并清除悬停
+                        state.selected.wire = wire;
+                        state.selected.component = null;
+                        hoveredWire = null;
+                        hoveredEndpoint = null;
+
+                        // 强制重绘
+                        redraw();
+                        return; // 阻止后续处理
+                    }
+                    // 处理元件拖拽
+                    if (draggingComponent) {
+                        draggingComponent.x = pos.x - dragOffset.x;
+                        draggingComponent.y = pos.y - dragOffset.y;
+
+
+                        // 锁定选中状态并清除悬停
+                        state.selected.component = draggingComponent;
+                        state.selected.wire = null;
+                        hoveredWire = null;
+                        hoveredEndpoint = null;
+
+                        redraw();//不整体重绘而是重绘移动组件
+                        // drawComponent(draggingComponent)
+
+                        return; // 阻止后续处理
+                    }
+                    if (currentMode === 'normal') {
+                        updateHoverState(pos);
+                    } else {
+                        // 非normal模式强制清除选中状态
+                        state.selected.component = null;
+                        state.selected.wire = null;
+                    }
+                });
+
+                canvas.addEventListener('mouseup', (e) => {
+                    draggingWire = null;
+                    draggingEndpoint = null;
+                    draggingComponent = null;
+                    //复制、移动组件代码
+                    // 复制、移动模式下的矩形结束
+                    if (isRectDragging) {
+                        isRectDragging = false;
+                        const rect = currentRect;
+
+                        // 确保矩形有有效大小
+                        if (Math.abs(rect.width) < 10 || Math.abs(rect.height) < 10) {
+                            currentRect = null;
+                            redraw();
+                            return;
+                        }
+
+                        // 标准化矩形坐标
+                        const x1 = Math.min(rect.x, rect.x + rect.width);
+                        const x2 = Math.max(rect.x, rect.x + rect.width);
+                        const y1 = Math.min(rect.y, rect.y + rect.height);
+                        const y2 = Math.max(rect.y, rect.y + rect.height);
+
+                        // 选择矩形内的组件，如果是复制模式，复制一份到临时容器，如果是移动模式，还要删除掉原来的组件
+                        if (copyMode) {
+                            copiedComponents = state.components.filter(comp => {
+                                const bounds = getComponentBounds(comp);
+                                return bounds.left >= x1 && bounds.right <= x2 &&
+                                    bounds.top >= y1 && bounds.bottom <= y2;
+                            }).map(comp => ({
+                                ...comp,
+                                originalX: comp.x,
+                                originalY: comp.y,
+                                previewX: comp.x,
+                                previewY: comp.y,
+
+                                name: generateComponentName(comp.type) // 生成唯一名称
+                            }));
+
+                            // 选择矩形内的导线
+                            copiedWires = state.wires.filter(wire => {
+                                return wire.points.every(p =>
+                                    p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2);
+                            }).map(wire => ({
+                                ...wire,
+                                points: [...wire.points],
+                                previewPoints: [...wire.points]
+                            }));
+                        }
+                        else if (moveMode) {
+                            copiedComponents = state.components.filter(comp => {
+                                const bounds = getComponentBounds(comp);
+                                return bounds.left >= x1 && bounds.right <= x2 &&
+                                    bounds.top >= y1 && bounds.bottom <= y2;
+                            }).map(comp => ({
+                                ...comp,
+                                originalX: comp.x,
+                                originalY: comp.y,
+                                previewX: comp.x,
+                                previewY: comp.y,
+                            }));
+                            //删除掉原group中的组件
+                            state.components = state.components.filter(comp => {
+                                const bounds = getComponentBounds(comp);
+                                return !(bounds.left >= x1 && bounds.right <= x2 &&
+                                    bounds.top >= y1 && bounds.bottom <= y2);
+                            });
+
+                            // 选择矩形内的导线
+                            copiedWires = state.wires.filter(wire => {
+                                return wire.points.every(p =>
+                                    p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2);
+                            }).map(wire => ({
+                                ...wire,
+                                points: [...wire.points],
+                                previewPoints: [...wire.points]
+                            }));
+                            //删除掉原group中的导线
+                            state.wires = state.wires.filter(wire => {
+                                return !(wire.points.every(p =>
+                                    p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2
+                                ));
+                            });
+
+                        }
+                        else if (deleteMode) {
+                            //删除掉原group中的组件
+                            state.components = state.components.filter(comp => {
+                                const bounds = getComponentBounds(comp);
+                                return !(bounds.left >= x1 && bounds.right <= x2 &&
+                                    bounds.top >= y1 && bounds.bottom <= y2);
+                            });
+                            //删除掉原group中的导线
+                            state.wires = state.wires.filter(wire => {
+                                return !(wire.points.every(p =>
+                                    p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2
+                                ));
+                            });
+                            //删除组件后要更新计数器
+                            updateCounters(state.components);
+                        }
+
+
+                        // 如果有选中的元素，进入放置预览状态
+                        if (copiedComponents.length > 0 || copiedWires.length > 0) {
+                            isPlacingGroup = true;
+                            rectStartPoint = getCanvasPos(e);
+                            if (copyMode) {
+                                copyIndicator.style.display = 'none';
+                            }
+                            else if (moveMode) {
+                                moveIndicator.style.display = 'none';
+                            }
+
+
+                        }
+
+                        currentRect = null;
+                        redraw();
+                        return;
+                    }
+
+                    // 放置复制组
+                    if (isPlacingGroup && e.button === 0) {
+                        // 添加复制的组件
+                        copiedComponents.forEach(comp => {
+                            state.components.push({
+                                type: comp.type,
+                                name: comp.name,
+                                value: comp.value,
+                                x: comp.previewX,
+                                y: comp.previewY,
+                                rotation: comp.rotation
+                            });
+                        });
+
+                        // 添加复制的导线
+                        copiedWires.forEach(wire => {
+                            state.wires.push({
+                                points: wire.previewPoints,
+                                connections: []
+                            });
+                        });
+
+                        // 重置状态，保持复制模式
+                        copiedComponents = [];
+                        copiedWires = [];
+                        isPlacingGroup = false;
+                        if (copyMode) {
+                            copyIndicator.style.display = 'block';
+                        }
+                        else if (moveMode) {
+                            moveIndicator.style.display = 'block';
+                        }
+
+                        redraw();
+                        return;
+                    }
+
+
+                    if (currentMode === 'wiring' && wireMode === 'drawing') {
+                        if (currentWirePath.length >= 2) {
+                            state.wires.push({
+                                // id: Date.now(),
+                                points: [...currentWirePath],
+                                connections: [] // 存储连接元件信息
+                            });
+                        }
+                    }
+                    mergeWires();
+                    redraw();
+                    // 结束画布拖拽（新增部分）
+                    if (isPanning) {
+                        isPanning = false;
+                        // canvas.style.cursor = 'default';
+                        return;
+                    }
+
+                });
+                // 确保鼠标离开画布时恢复状态（新增部分）
+                canvas.addEventListener('mouseleave', () => {
+                    if (isPanning) {
+                        isPanning = false;
+                        // canvas.style.cursor = 'default';
+                    }
+                });
+
+                // 添加旋转提示
+                const hint = document.createElement('div');
+                hint.id = 'rotation-hint';
+                document.body.appendChild(hint);
+
+                // 更新旋转提示
+                setInterval(() => {
+                    hint.textContent = `Current rotation angle: ${currentRotation}° (Ctrl+rotation)`;
+                    hint.style.display = isPlacing ? 'block' : 'none';
+                }, 100);
+            }
+
+            function findComponentAt(pos) {
+                for (const comp of state.components) {
+                    const bounds = getComponentBounds(comp);
+                    if (pos.x >= bounds.left && pos.x <= bounds.right &&
+                        pos.y >= bounds.top && pos.y <= bounds.bottom) {
+                        return comp;
+                    }
+                }
+                return null;
+            }
+
+            function getComponentBounds(comp) {
+                // 特殊处理标签组件
+                if (comp.type === 'label') {
+                    return calculateLabelBounds(comp);
+                }
+                const template = ComponentTemplates[comp.type];
+                if (!template) return { left: 0, right: 0, top: 0, bottom: 0 };
+
+                // 计算旋转后的实际尺寸
+                const calcRotatedSize = (width, height, rotation) => {
+                    const rad = rotation * Math.PI / 180;
+                    return {
+                        w: Math.abs(width * Math.cos(rad)) + Math.abs(height * Math.sin(rad)),
+                        h: Math.abs(width * Math.sin(rad)) + Math.abs(height * Math.cos(rad))
+                    };
+                };
+
+                // 获取元件原始尺寸
+                const { pins } = template;
+                const minX = Math.min(...pins.map(p => p.x));
+                const maxX = Math.max(...pins.map(p => p.x));
+                const minY = Math.min(...pins.map(p => p.y));
+                const maxY = Math.max(...pins.map(p => p.y));
+                //以上获取高度和宽度对接地这种只有一个引脚点的不适用
+                // const width = maxX - minX;
+                // const height = maxY - minY;
+                // 如果该组件带有bounds属性则用，否则用计算的
+                const width = template.bounds?.width || (maxX - minX);
+                const height = template.bounds?.height || (maxY - minY);
+
+
+                // 计算旋转后尺寸
+                const { w, h } = calcRotatedSize(width, height, comp.rotation || 0);
+
+                return {
+                    left: comp.x - w / 2,
+                    right: comp.x + w / 2,
+                    top: comp.y - h / 2,
+                    bottom: comp.y + h / 2
+                };
+            }
+            function calculateLabelBounds(comp) {
+                // 获取标签文本
+                const text = comp.name || "Label";
+
+                // 创建临时canvas测量文本
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.font = '12px Arial';
+                const textWidth = ctx.measureText(text).width;
+
+                // 计算标签主体尺寸（不含引脚）
+                const padding = 20;
+                const minWidth = 60;
+                const labelWidth = Math.max(minWidth, textWidth + padding); // 标签主体宽度
+                const labelHeight = 24; // 标签主体高度
+
+                // 引脚短线长度
+                const pinLength = 8;
+
+                // 在局部坐标系中定义标签的关键点
+                // 注意：引脚点在(0,0)，标签主体从(8, -12)到(8+labelWidth, 12)
+                const points = [
+                    // 引脚线左端点 (x=0)
+                    { x: 0, y: 0 },
+
+                    // 标签主体左上角点 (x=8, y=-12)
+                    { x: pinLength, y: -labelHeight / 2 },
+
+                    // 标签主体左下角点 (x=8, y=12)
+                    { x: pinLength, y: labelHeight / 2 },
+
+                    // 标签主体右下角点 (x=8+labelWidth, y=0附近)
+                    { x: pinLength + labelWidth, y: 0 },
+
+                    // 标签主体右上角点 (x=8+labelWidth-12, y=-12)
+                    { x: pinLength + labelWidth - 12, y: -labelHeight / 2 },
+                ];
+
+                // 将旋转中心点(0,0)也添加进去
+                points.push({ x: 0, y: 0 });
+
+                // 转换为世界坐标（考虑旋转和位置）
+                const rotatedPoints = points.map(p => {
+                    const rad = comp.rotation * Math.PI / 180;
+                    return {
+                        x: comp.x + (p.x * Math.cos(rad) - p.y * Math.sin(rad)),
+                        y: comp.y + (p.x * Math.sin(rad) + p.y * Math.cos(rad))
+                    };
+                });
+
+                // 计算所有点的最小/最大坐标
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+
+                rotatedPoints.forEach(point => {
+                    minX = Math.min(minX, point.x);
+                    maxX = Math.max(maxX, point.x);
+                    minY = Math.min(minY, point.y);
+                    maxY = Math.max(maxY, point.y);
+                });
+
+                return {
+                    left: minX,
+                    right: maxX,
+                    top: minY,
+                    bottom: maxY
+                };
+            }
+
+            // 通用引脚绘制函数
+            function drawPins(ctx, pins) {
+                ctx.fillStyle = '#2c3e50';
+                pins.forEach(pin => {
+                    ctx.beginPath();
+                    ctx.arc(pin.x, pin.y, PIN_RADIUS, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            // ========== 元件模板系统 ==========
+            const ComponentTemplates = {
+                resistor: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        ctx.translate(x, y); // 移动到中心点
+
+                        // 主体绘制
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+
+                        ctx.beginPath();
+                        ctx.moveTo(x - 40, y);
+                        ctx.lineTo(x - 30, y);  // 左引脚缩短
+                        ctx.moveTo(x + 30, y);
+                        ctx.lineTo(x + 40, y);  // 右引脚缩短
+                        ctx.stroke();
+
+                        // 绘制折线主体
+                        const segments = [
+                            { x: -30, y: 0 }, { x: -25, y: -6 }, { x: -20, y: 0 },
+                            { x: -15, y: 6 }, { x: -10, y: 0 }, { x: -5, y: -6 },
+                            { x: 0, y: 0 }, { x: 5, y: 6 }, { x: 10, y: 0 },
+                            { x: 15, y: -6 }, { x: 20, y: 0 }, { x: 25, y: 6 },
+                            { x: 30, y: 0 }
+                        ];
+
+                        ctx.beginPath();
+                        segments.forEach((p, i) =>
+                            i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)
+                        );
+                        ctx.stroke();
+
+                        ctx.restore();
+                    },
+                    pins: [
+                        { x: -40, y: 0 },  // 左引脚端点
+                        { x: 40, y: 0 }    // 右引脚端点
+                    ]
+                },
+                capacitor: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+
+                        // 引脚（连接至极板端点）
+                        ctx.beginPath();
+                        ctx.moveTo(x - 32, y);
+                        ctx.lineTo(x - 8, y);  // 左引脚缩短
+                        ctx.moveTo(x + 8, y);
+                        ctx.lineTo(x + 32, y);  // 右引脚缩短
+                        ctx.stroke();
+
+                        // 改进后的极板（长度16px，间距12px）
+                        ctx.beginPath();
+                        // 左极板（垂直方向加长）
+                        ctx.moveTo(x - 8, y - 15);
+                        ctx.lineTo(x - 8, y + 15);
+                        // 右极板（垂直方向加长）
+                        ctx.moveTo(x + 8, y - 15);
+                        ctx.lineTo(x + 8, y + 15);
+                        ctx.stroke();
+                        ctx.restore();
+                    },
+                    pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }]  // 保持90px总引脚长度
+                },
+                inductor: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // 引脚短线（15px）
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x - 40, y);
+                        ctx.lineTo(x - 20, y);
+                        ctx.moveTo(x + 20, y);
+                        ctx.lineTo(x + 40, y);
+                        ctx.stroke();
+
+                        // 四层线圈（半径8px，间距10px）
+                        ctx.beginPath();
+                        [-15, -5, 5, 15].forEach(i => {
+                            ctx.arc(x + i, y, 8, Math.PI / 2, Math.PI * 3 / 2);
+                        });
+                        ctx.stroke();
+                        ctx.restore();
+                    },
+                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                },
+                diode: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+
+                        /*---- 优化后的箭头结构 ----*/
+                        // 三角形参数
+                        const triangleHeight = 24;  // 总高度24px（原18px）
+                        const triangleWidth = 18;    // 底部宽度18px（原12px）
+
+                        // 垂直段（从y+12到y-12）
+                        ctx.beginPath();
+                        ctx.moveTo(x - triangleWidth / 2, y + triangleHeight / 2);
+                        ctx.lineTo(x - triangleWidth / 2, y - triangleHeight / 2);
+
+                        // 右斜线（连接到底部中心点）
+                        ctx.moveTo(x - triangleWidth / 2, y + triangleHeight / 2);
+                        ctx.lineTo(x + triangleWidth / 2, y);
+
+                        // 左斜线（连接到底部中心点）
+                        ctx.moveTo(x - triangleWidth / 2, y - triangleHeight / 2);
+                        ctx.lineTo(x + triangleWidth / 2, y);
+                        ctx.stroke();
+
+                        /*---- 优化后的引脚系统 ----*/
+                        ctx.beginPath();
+                        // 左侧引脚
+                        ctx.moveTo(x - triangleWidth / 2, y);
+                        ctx.lineTo(x - 32, y);
+
+                        // 右侧引脚
+                        ctx.moveTo(x + triangleWidth / 2, y);
+                        ctx.lineTo(x + 32, y);
+                        ctx.stroke();
+
+                        ctx.restore();
+                    },
+                    pins: [
+                        { x: -32, y: 0 },  // 与其他元件统一左引脚位置
+                        { x: 32, y: 0 }    // 与其他元件统一右引脚位置
+                    ]
+                },
+                voltage: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+                        // 引脚
+                        ctx.beginPath();
+                        ctx.moveTo(x - 40, y);
+                        ctx.lineTo(x - 15, y);
+                        ctx.moveTo(x + 15, y);
+                        ctx.lineTo(x + 40, y);
+                        ctx.stroke();
+
+                        // 电源符号
+                        ctx.beginPath();
+                        ctx.arc(x, y, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // 极性符号
+                        ctx.font = 'bold 14px Arial';
+                        ctx.fillStyle = '#2c3e50';
+                        ctx.fillText('+', x - 7, y + 4);
+                        ctx.fillText('-', x + 2, y + 4);
+                        ctx.restore();
+                    },
+                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                },
+                BVoltage: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+                        // 引脚
+                        ctx.beginPath();
+                        ctx.moveTo(x - 40, y);
+                        ctx.lineTo(x - 15, y);
+                        ctx.moveTo(x + 15, y);
+                        ctx.lineTo(x + 40, y);
+                        ctx.stroke();
+
+                        // 电源符号
+                        ctx.beginPath();
+                        ctx.arc(x, y, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // 极性符号
+                        ctx.font = 'bold 14px Arial';
+                        ctx.fillStyle = '#2c3e50';
+                        ctx.fillText('+', x - 7, y + 4);
+                        ctx.fillText('-', x + 2, y + 4);
+                        ctx.restore();
+                    },
+                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                },
+                ground: {
+                    draw(ctx, x, y) {
+                        ctx.save();
+                        // 引脚短线（15px）
+                        // ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x, y + 15);
+
+                        // 三层横线（长度递减）
+                        ctx.moveTo(x - 20, y + 15);
+                        ctx.lineTo(x + 20, y + 15);
+                        ctx.moveTo(x - 15, y + 20);
+                        ctx.lineTo(x + 15, y + 20);
+                        ctx.moveTo(x - 10, y + 25);
+                        ctx.lineTo(x + 10, y + 25);
+                        ctx.stroke();
+                        ctx.restore();
+                    },
+                    pins: [{ x: 0, y: 0 }],
+                    // 添加实际图形尺寸信息
+                    bounds: {
+                        width: 40,   // 最宽横线的宽度
+                        height: 45   // 从顶部到底部的距离
+                    }
+                },
+                label: {
+                    draw(ctx, x, y, comp) {
+                        // 获取标签文本（优先使用组件名称）
+                        let labelText;
+                        if (comp) {
+                            labelText = comp.name || "Label";
+                        }
+                        else {
+                            labelText = "Label";
+                        }
+
+                        // // 测量文本宽度
+                        ctx.font = '12px Arial';
+                        const textWidth = ctx.measureText(labelText).width;
+                        ctx.lineWidth = 2;
+                        // // 绘制引脚短线
+                        // ctx.beginPath();
+                        // ctx.moveTo(x, y);
+                        // ctx.lineTo(x + 8, y);
+                        // ctx.stroke();
+
+                        // // 绘制五边形
+                        // ctx.beginPath();
+                        // ctx.moveTo(x + 8, y - 12);//底部
+                        // ctx.lineTo(x + 8, y + 12);
+                        // ctx.lineTo(x + 20, y + 12);
+                        // ctx.lineTo(x + 32, y);
+                        // ctx.lineTo(x + 20, y - 12);
+                        // ctx.lineTo(x + 8, y - 12);
+                        // ctx.closePath();
+                        // ctx.stroke();
+
+                        // 计算标签宽度（基于文本宽度）
+                        const minWidth = 40;
+                        const padding = 10;
+                        const labelWidth = Math.max(minWidth, textWidth + padding);
+                        const labelHeight = 24;
+
+                        // 绘制引脚短线
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + 8, y);
+                        ctx.stroke();
+
+                        // 绘制五边形（宽度动态调整）
+                        ctx.beginPath();
+                        ctx.moveTo(x + 8, y - labelHeight / 2); // 左上角
+                        ctx.lineTo(x + 8, y + labelHeight / 2); // 左下角
+                        ctx.lineTo(x + 8 + labelWidth - 12, y + labelHeight / 2); // 右下角
+                        ctx.lineTo(x + 8 + labelWidth, y); // 右侧顶点
+                        ctx.lineTo(x + 8 + labelWidth - 12, y - labelHeight / 2); // 右上角
+                        ctx.closePath();
+                        ctx.stroke();
+                        // 绘制文本（水平居中）
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(labelText, x + 8 + labelWidth / 2, y);
+                    },
+                    pins: [{ x: 0, y: 0 }],
+                    bounds: {
+                        width: 32,   // 最宽横线的宽度
+                        height: 24   // 从顶部到底部的距离
+                    }
+                }
+            };
+
+
+            // ========== 事件处理系统 ==========
+
+            function handleCanvasClick(e) {
+                if (e.button !== 0) return; // 只处理左键点击
+                //读取仿真数据功能相关代码，引脚点、组件被点击寻找对应的仿真数据渲染展示
+                // 复制模式下的左键点击（开始绘制选择矩形）
+                if ((moveMode || copyMode || deleteMode) && e.button === 0 && !isPlacingGroup) {
+                    isRectDragging = true;
+                    rectStartPoint = getCanvasPos(e);
+                    currentRect = {
+                        x: rectStartPoint.x,
+                        y: rectStartPoint.y,
+                        width: 0,
+                        height: 0
+                    };
+                    e.preventDefault();
+                    return;
+                }
+                //放置模式时不预对齐网格，由dynamicMagneticSnap统一处理
+                const pos = getCanvasPos(e, currentMode !== 'placing');
+
+                /*===== 模式1：放置元件模式 =====*/
+                if (currentMode === 'placing') {
+                    placeComponent(pos);
+                    return;
+                }
+
+                /*===== 模式2：导线绘制模式 =====*/
+                if (currentMode === 'wiring') {
+                    // 新增通用重置逻辑
+                    const resetState = () => {
+                        wireMode = 'start';
+                        previewLine = null;
+                        wireStartPoint = null;
+                        hoveredWire = null;
+                        hoveredEndpoint = null;
+                        redraw();
+                    };
+                    // 阶段A：开始绘制（创建新导线）
+                    if (wireMode === 'start') {
+                        // 使用对齐后的起点
+                        wireStartPoint = snapToGrid(pos);
+                        wireMode = 'drawing';
+                        previewLine = {
+                            start: wireStartPoint,
+                            end: wireStartPoint // 初始位置对齐
+                        };
+                    }
+                    // 阶段B：正在绘制（完成当前线段）
+                    else {
+                        // 关键修改：使用previewLine的终点坐标
+                        const endPoint = snapToGrid(previewLine.end);
+
+                        state.wires.push({
+                            // id: Date.now(),
+                            points: [wireStartPoint, endPoint],
+                            connections: []
+                        });
+
+                        // 重置为新的起点（继承当前终点）
+                        wireStartPoint = endPoint;
+                        previewLine.start = endPoint;
+
+                        /* 
+                           关键区别：不再自动连接下一线段
+                           原逻辑问题：wireStartPoint = endPoint 会导致坐标引用共享
+                           新方案：下次点击会创建全新的独立导线
+                        */
+                        wireMode = 'start'; // 重置为开始模式
+                        previewLine = null; // 清除预览线
+                    }
+                    mergeWires();
+                    redraw();
+                }
+            }
+
+
+            // 退出连线模式时清理
+            function exitWiringMode() {
+                document.getElementById('crosshairCursor').style.display = 'none';
+                currentCanvas.style.cursor = 'default';
+                currentMode = 'normal';
+                // 新增强制清除状态
+                wireMode = 'start';
+                previewLine = null;
+                wireStartPoint = null;
+                // 清除残留悬停状态
+                hoveredWire = null;
+                hoveredEndpoint = null;
+                redraw();
+            }
+
+
+            function handleRightClick(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // 复制模式下右键退出
+                if (copyMode || (isPlacingGroup && copyMode)) {
+                    exitCopyMode();
+                    //退出复制模式可能造成预览组件删除，需要更新计数器
+                    updateCounters(state.components)
+                    return false;
+                }
+                //移动模式下右键退出
+                if (moveMode) {
+                    if (!isPlacingGroup) {
+                        exitMoveMode();
+                    }
+
+                    return false;
+                }
+                //删除模式下右键退出
+                if (deleteMode) {
+                    exitDeleteMode();
+                    return false;
+                }
+
+
+
+                if (currentMode === 'wiring') {
+                    if (wireMode === 'drawing') {
+                        // 保存已确定的路径段
+                        if (currentWirePath.length >= 2) {
+                            state.wires.push({
+                                // id: Date.now(),
+                                points: [...currentWirePath],
+                                connections: []
+                            });
+                        }
+                        // 仅退出绘制中状态，保持连线模式
+                        wireMode = 'start';
+                        currentWirePath = [];
+                        previewLine = null;
+                        redraw();
+                        return false;
+                    }
+                    // 彻底退出连线模式
+                    document.getElementById('crosshairCursor').style.display = 'none';
+                    currentCanvas.style.cursor = 'default';
+                    currentMode = 'normal';
+                    wireMode = 'start';
+                    currentWirePath = [];
+                    redraw();
+                    return false; // 阻断后续处理
+                }
+
+                // 处理其他特殊模式
+                if (currentMode !== 'normal') {
+                    // 清除预览元素
+                    if (previewComp) {
+                        document.body.removeChild(previewComp);
+                        previewComp = null;
+                    }
+                    // 重置状态
+                    currentMode = 'normal';
+                    currentComponent = null;
+                    currentRotation = 0;
+                    currentCanvas.style.cursor = 'default';
+                    redraw();
+                    return false;
+                }
+
+                // 正常模式下的右键菜单
+                const pos = getCanvasPos(e);
+                const comp = findComponentAt(pos);
+                if (comp) {
+                    // 显示属性对话框
+                    selectedComponent = comp;
+                    document.getElementById('compName').value = comp.name;
+                    document.getElementById('compValue').value = comp.value;
+                    document.getElementById('propDialog').style.display = 'block';
+                    // 设置焦点（标签组件选名称，其他组件选值）
+                    setTimeout(() => {
+                        if (comp.type === 'label') {
+                            const nameInput = document.getElementById('compName');
+                            nameInput.focus();
+                            nameInput.select();
+                        } else {
+                            const valueInput = document.getElementById('compValue');
+                            valueInput.focus();
+                            valueInput.select();
+                        }
+
+                        // 添加回车键监听
+                        const dialog = document.getElementById('propDialog');
+                        dialog.onkeydown = (e) => {
+                            if (e.key === 'Enter') {
+                                CircuitDesigner.saveComponentProps();
+                            }
+                        };
+                    }, 10);
+                } else {
+                    // 显示上下文菜单
+                    showContextMenu(e.clientX, e.clientY);
+                }
+                return false;
+            }
+
+            // ========== 核心功能 ==========
+            // 修改后的placeComponent函数
+            // 在placeComponent中添加标签初始化
+            function placeComponent(pos) {
+                if (!currentComponent) return;
+
+                // 最终吸附校准
+                const finalPos = dynamicMagneticSnap(pos);
+
+                const newComponent = {
+                    type: currentComponent,
+                    name: generateComponentName(currentComponent),
+                    value: getDefaultValue(currentComponent),
+                    x: finalPos.x,
+                    y: finalPos.y,
+                    rotation: currentRotation
+                };
+
+                state.components.push(newComponent);
+                redraw();
+            }
+
+            // 默认值生成
+            function getDefaultValue(type) {
+                const defaults = {
+                    capacitor: '1uF',  // 添加单位
+                    resistor: '1',
+                    inductor: '10mH',
+                    diode: '1N4148',
+                    voltage: '5V',
+                    BVoltage: 'V=F(..)',
+                    ground: '',        // 接地无需数值
+                    label: ''  // 暂时不需要默认值
+                };
+                return defaults[type] || '';
+            }
+            // 修改鼠标移动事件处理
+            let lastMousePos = { clientX: 0, clientY: 0 };
+
+            // 修改后的handleMouseMove处理
+            function handleMouseMove(e) {
+                // 新增电流箭头光标处理
+                if (state.simulatedData.time && currentMode === 'normal') {
+                    const pos = getCanvasPos(e);
+
+                    // 1. 首先检测引脚点悬停
+                    hoveredPin = findPinAt(pos);
+                    if (hoveredPin) {
+                        // 显示针尖笔光标
+                        showPinCursor(e.clientX, e.clientY);
+                        // 隐藏电流箭头
+                        hideCurrentArrow();
+                        hoveredComponent = null; // 清除组件悬停状态
+                        return; // 阻止后续处理
+                    } else {
+                        hoveredPin = null; // 清除引脚悬停状态
+                    }
+
+
+                    // 2. 如果没有检测到引脚，隐藏针尖笔光标
+                    hidePinCursor();
+
+                    // 3. 检测组件悬停
+                    hoveredComponent = findComponentAt(pos);
+
+                    // 4. 仅对非标签、非接地组件显示电流箭头
+                    if (hoveredComponent && hoveredComponent.type !== 'label' && hoveredComponent.type !== 'ground') {
+                        // 计算箭头旋转角度（基于组件旋转角度）
+                        const angle = hoveredComponent.rotation || 0;
+
+                        // 显示电流箭头
+                        showCurrentArrow(e.clientX, e.clientY, angle);
+                    } else {
+                        // 隐藏电流箭头
+                        hideCurrentArrow();
+                        hoveredComponent = null; // 清除无效悬停
+                    }
+
+
+                }
+
+
+
+
+                //删除功能代码
+                //更新复制指示器位置
+                if (deleteMode && deleteIndicator) {
+                    deleteIndicator.style.left = (e.clientX + 10) + 'px';
+                    deleteIndicator.style.top = (e.clientY + 10) + 'px';
+                }
+                //移动功能代码
+                //更新复制指示器位置
+                if (moveMode && moveIndicator) {
+                    moveIndicator.style.left = (e.clientX + 10) + 'px';
+                    moveIndicator.style.top = (e.clientY + 10) + 'px';
+                }
+
+                //复制功能代码
+                // 更新复制指示器位置
+                if (copyMode && copyIndicator) {
+                    copyIndicator.style.left = (e.clientX + 10) + 'px';
+                    copyIndicator.style.top = (e.clientY + 10) + 'px';
+                }
+
+                // 复制或移动或删除模式下的矩形绘制
+                if (isRectDragging) {
+                    const pos = getCanvasPos(e);
+                    currentRect.width = pos.x - rectStartPoint.x;
+                    currentRect.height = pos.y - rectStartPoint.y;
+                    redraw();
+                    return;
+                }
+
+                // 放置复制组时的预览
+                if (isPlacingGroup) {
+                    const mousePos = getCanvasPos(e, false);
+                    const offsetX = mousePos.x - rectStartPoint.x;
+                    const offsetY = mousePos.y - rectStartPoint.y;
+
+                    // 应用磁吸效果
+                    const gridOffsetX = Math.round(offsetX / GRID_SIZE) * GRID_SIZE;
+                    const gridOffsetY = Math.round(offsetY / GRID_SIZE) * GRID_SIZE;
+
+                    // 磁吸阈值（半个网格）
+                    const dx = Math.abs(offsetX - gridOffsetX);
+                    const dy = Math.abs(offsetY - gridOffsetY);
+                    const useGridOffset = dx < GRID_SIZE / 2 && dy < GRID_SIZE / 2;
+
+                    copiedComponents.forEach(comp => {
+                        comp.previewX = comp.originalX + (useGridOffset ? gridOffsetX : offsetX);
+                        comp.previewY = comp.originalY + (useGridOffset ? gridOffsetY : offsetY);
+                    });
+
+                    copiedWires.forEach(wire => {
+                        wire.previewPoints = wire.points.map(p => ({
+                            x: p.x + (useGridOffset ? gridOffsetX : offsetX),
+                            y: p.y + (useGridOffset ? gridOffsetY : offsetY)
+                        }));
+                    });
+
+                    redraw();
+                    return;
+                }
+                const pos = getCanvasPos(e); // 确保这里有获取位置
+                lastMousePos = e;
+                // 新增导线拖拽状态判断
+                const isWireDragging = !!draggingWire;
+
+                // 完全禁用悬停检测的情况
+                const shouldBlockHover = isWireDragging || draggingComponent || currentMode === 'wiring';
+
+                if (currentMode === 'wiring' && wireMode === 'drawing') {
+                    const start = previewLine.start;
+                    let endX = pos.x, endY = pos.y;
+
+                    // 计算方向
+                    // 强制方向对齐逻辑（新增）
+                    const dx = Math.abs(pos.x - start.x);
+                    const dy = Math.abs(pos.y - start.y);
+
+                    // 自动确定连线方向
+                    // 水平优先策略
+                    if (dx >= dy) {
+                        endY = start.y; // 锁定Y轴
+                        currentDirection = 'horizontal';
+                    } else {
+                        endX = start.x; // 锁定X轴
+                        currentDirection = 'vertical';
+                    }
+                    // 应用网格对齐（关键修复）
+                    previewLine.end = snapToGrid({
+                        x: endX,
+                        y: endY
+                    });
+
+                    // 新增强制重绘逻辑
+                    if (currentMode === 'normal') {
+                        const prevSelected = state.selected.component;
+                        state.selected.component = findComponentAt(pos);
+
+                        // 当选中状态变化时立即重绘
+                        if (prevSelected !== state.selected.component) {
+                            redraw();
+                        }
+                    }
+
+                    redraw();
+                }
+                // 新增悬停检测
+                // 先检测端点悬停（优先级最高）
+                // 仅在normal模式更新悬停状态
+                // 新增状态判断：在拖拽或连线模式下禁止悬停检测
+                const isInteracting = draggingComponent || draggingWire || currentMode === 'wiring';
+
+                if (shouldBlockHover) {
+                    // 强制清除所有悬停状态
+                    hoveredEndpoint = null;
+                    hoveredWire = null;
+                    if (!isWireDragging) {
+                        state.selected.component = null;
+                        state.selected.wire = null;
+                    }
+                } else {
+                    // 正常悬停检测
+                    hoveredEndpoint = findWireEndpoint(pos);
+                    hoveredWire = hoveredEndpoint ? null : findWireAt(pos);
+                    state.selected.component = findComponentAt(pos);
+                    state.selected.wire = hoveredWire;
+                }
+                // 处理拖拽状态下的高亮逻辑（新增）
+                // if (draggingComponent) {
+                //     state.selected.component = draggingComponent;
+                //     state.selected.wire = null; // 确保不会同时高亮导线
+
+                //     redraw();
+
+                // }
+                if (draggingWire) {
+                    // 锁定当前导线为唯一选中项
+                    state.selected.wire = draggingWire.wire;
+                    state.selected.component = null;
+
+                    // 禁止触发其他导线的高亮
+                    hoveredWire = null;
+                    hoveredEndpoint = null;
+
+                    // 更新导线位置
+                    const wire = draggingWire.wire;
+                    const dx = pos.x - draggingWire.offsetX - wire.points[0].x;
+                    const dy = pos.y - draggingWire.offsetY - wire.points[0].y;
+
+                    wire.points.forEach(p => {
+                        p.x += dx;
+                        p.y += dy;
+                    });
+
+                    // 立即重绘避免闪烁
+                    redraw();
+                    return;
+                }
+                // 处理连线模式光标
+                if (currentMode === 'wiring') {
+                    const pos = getCanvasPos(e);
+                    const crosshair = document.getElementById('crosshairCursor');
+                    const canvasRect = currentCanvas.getBoundingClientRect();
+
+                    // 计算带滚动偏移的位置
+                    crosshair.style.left = `${pos.x + canvasRect.left - 20}px`;
+                    crosshair.style.top = `${pos.y + canvasRect.top - 20}px`;
+                    // 计算相对于视口的坐标
+                    const viewportX = pos.x + canvasRect.left - window.scrollX;
+                    const viewportY = pos.y + canvasRect.top - window.scrollY;
+
+                    // 更新十字线位置
+                    crosshair.style.setProperty('--cursor-x', `${viewportX}px`);
+                    crosshair.style.setProperty('--cursor-y', `${viewportY}px`);
+                }
+
+                if (currentMode === 'placing') {
+                    isPlacing = true;
+                    redrawPreview();
+
+                    // 强制同步渲染（解决Chrome的渲染延迟）
+                    currentCanvas.style.animation = 'none';
+                    void currentCanvas.offsetHeight; // 触发重绘
+                    currentCanvas.style.animation = null;
+                }
+
+                // 仅在正常模式检测悬停
+                if (currentMode === 'normal') {
+                    const pos = getCanvasPos(e);
+                    let component = findComponentAt(pos);
+                    let wire = findWireAt(pos);
+                    state.selected.component = component;
+                    state.selected.wire = wire;
+                    if (!draggingComponent && !draggingWire && !isPanning)
+                        redraw();
+
+                }
+
+            }
+            // 检测鼠标是否悬停在引脚点上
+            function findPinAt(pos) {
+                const threshold = 8; // 引脚点检测阈值
+
+                for (const comp of state.components) {
+                    // 跳过标签和接地组件
+                    if (comp.type === 'label' || comp.type === 'ground') continue;
+
+                    const pins = getComponentPins(comp);
+                    for (let i = 0; i < pins.length; i++) {
+                        const pin = pins[i];
+                        const distance = Math.hypot(pos.x - pin.x, pos.y - pin.y);
+                        if (distance < threshold) {
+                            return {
+                                component: comp,
+                                pin: pin,
+                                index: i, // 引脚索引
+                                distance: distance
+                            };
+                        }
+                    }
+                }
+
+                return null; // 没有找到引脚点
+            }
+            // 获取引脚点名称（node1或node2变量）
+            function getPinName(comp, pinIndex) {
+                // 获取组件信息
+                const compInfo = state.nodeInfo[comp.name];
+                if (!compInfo) return null;
+
+                // 根据引脚索引返回对应名称
+                return pinIndex === 0 ? compInfo['node1'] : compInfo['node2'];
+            }
+
+
+            // 新增精确线段碰撞检测
+            function isPointOnSegment(p, a, b) {
+                // 精确计算点到线段的距离
+                return distanceToSegment(p, a, b) < 6;
+            }
+            // 新增导线碰撞检测
+            // 重写导线检测逻辑（替换原findWireAt函数）
+            function findWireAt(pos) {
+                // 只返回距离鼠标最近的导线
+                let closestWire = null;
+                let minDistance = Infinity;
+
+                state.wires.forEach(wire => {
+                    const [p1, p2] = wire.points;
+                    const dist = distanceToSegment(pos, p1, p2);
+
+                    if (dist < 6 && dist < minDistance) {
+                        minDistance = dist;
+                        closestWire = wire;
+                    }
+                });
+
+                return closestWire;
+            }
+            // 修改后的端点检测函数
+            function findWireEndpoint(pos) {
+                if (currentMode !== 'normal') return null; // 非normal模式不检测
+
+                const threshold = 8;
+                for (const wire of state.wires) {
+                    // 检查起点
+                    if (Math.hypot(pos.x - wire.points[0].x, pos.y - wire.points[0].y) < threshold) {
+                        return { wire: wire, index: 0 };
+                    }
+                    // 检查终点
+                    if (Math.hypot(pos.x - wire.points[wire.points.length - 1].x,
+                        pos.y - wire.points[wire.points.length - 1].y) < threshold) {
+                        return { wire: wire, index: wire.points.length - 1 };
+                    }
+                }
+                return null;
+            }
+
+            // 新增几何计算函数
+            function distanceToSegment(p, a, b) {
+                const dx = b.x - a.x;
+                const dy = b.y - a.y;
+                const t = Math.max(0, Math.min(1,
+                    ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)
+                ));
+                const proj = { x: a.x + t * dx, y: a.y + t * dy };
+                return Math.hypot(p.x - proj.x, p.y - proj.y);
+            }
+
+
+
+            // 修复问题4：元件命名逻辑
+            function generateComponentName(type) {
+                const prefixMap = {
+                    resistor: 'R',
+                    capacitor: 'C',
+                    inductor: 'L',
+                    diode: 'D',
+                    voltage: 'V',
+                    BVoltage: 'B',
+                    ground: 'GND',
+                    label: 'Lab'
+
+                };
+                const prefix = prefixMap[type];
+                return `${prefix}${state.counters[prefix]++}`;
+            }
+
+            // 新增预览绘制逻辑
+            // 增强预览功能
+            function redrawPreview() {
+                if (!currentComponent || !isPlacing) return;
+                const template = ComponentTemplates[currentComponent];
+                if (!template || !template.pins) return; // 新增模板检查
+                // 获取精确画布坐标（不应用网格对齐）
+                const rawPos = getCanvasPos(lastMousePos, false);
+                const snappedPos = dynamicMagneticSnap(rawPos); // 先计算吸附位置
+                // 创建/更新预览画布
+                if (!previewComp) {
+                    previewComp = document.createElement('canvas');
+                    previewComp.className = 'component-preview';
+                    previewComp.width = 100;
+                    previewComp.height = 100;
+                    previewComp.style.position = 'absolute'; // 改为绝对定位
+                    document.body.appendChild(previewComp);
+                }
+
+                // 计算最终显示位置
+                const canvasRect = currentCanvas.getBoundingClientRect();
+                // 修复：添加滚动偏移计算
+                const docX = snappedPos.x + canvasRect.left + window.scrollX;
+                const docY = snappedPos.y + canvasRect.top + window.scrollY;
+
+                previewComp.style.left = `${docX - 50}px`;
+                previewComp.style.top = `${docY - 50}px`;
+                // 绘制预览图形
+                const ctx = previewComp.getContext('2d');
+                ctx.clearRect(0, 0, 100, 100);
+
+                // 应用元件旋转中心修正
+                const pinCenter = calculatePinCenter(currentComponent);
+                ctx.save();
+                ctx.translate(50, 50);
+                ctx.rotate(currentRotation * Math.PI / 180);
+                ctx.translate(-pinCenter.x, -pinCenter.y);
+                ctx.globalAlpha = 0.7;
+                ComponentTemplates[currentComponent].draw(ctx, pinCenter.x, pinCenter.y);
+                ctx.restore();
+
+
+            }
+
+
+            // ========== 绘图系统 ==========
+            // 通用绘制函数改造
+            // 增强元件绘制
+            // 修改元件绘制逻辑
+            function drawComponent(comp) {
+                // 新增绘制状态判断
+                const isDragging = draggingComponent === comp;
+                const isSelected = comp === state.selected.component || comp === draggingComponent;
+                const ctx = currentContext;
+                ctx.save();
+
+                // 设置选中样式
+                if (isSelected || isDragging) {
+                    ctx.strokeStyle = '#00BFFF'; // 淡蓝色
+                    ctx.fillStyle = '#00BFFF';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = 'rgba(0,191,255,0.5)';
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.strokeStyle = '#2c3e50'; // 默认颜色
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 0;
+                }
+
+                // 计算旋转中心
+                const pinCenter = calculatePinCenter(comp.type);
+                ctx.translate(comp.x, comp.y);
+                ctx.rotate(comp.rotation * Math.PI / 180);
+
+                // 绘制元件主体（使用当前样式）
+                //如果是标签组件则用特殊的
+
+                ComponentTemplates[comp.type].draw(ctx, -pinCenter.x, -pinCenter.y, comp);
+
+
+
+                // 保存当前变换状态
+                ctx.save();
+                // 恢复到世界坐标系绘制引脚
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+                // 绘制引脚并检测非法连接
+                // 获取端点统计
+                const endpointCounts = getEndpointCounts();
+
+                // 绘制引脚并检测连接状态
+                getComponentPins(comp).forEach(pin => {
+                    const count = endpointCounts.get(`${pin.x},${pin.y}`) || 0;
+
+                    // 仅当刚好两个端点重合时隐藏
+                    if (count === 2) return;
+
+                    // 原有绘制逻辑
+                    if (isPointIllegal(pin)) {
+                        ctx.fillStyle = '#ff4444';
+                        ctx.beginPath();
+                        ctx.arc(pin.x, pin.y, PIN_RADIUS + 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.beginPath();
+                    ctx.arc(pin.x, pin.y, PIN_RADIUS, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // 恢复元件变换状态
+                ctx.restore();
+
+                // 绘制标签（在旋转后坐标系中）
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // 根据元件类型调整标签位置
+                const labelOffset = getLabelOffset(comp.type);
+                //接地和标签组件就不需要绘制名字和属性值了
+                if (comp.type !== 'label' && comp.type !== 'ground') {
+                    ctx.fillText(
+                        `${comp.name}: ${comp.value}`,
+                        0,
+                        labelOffset
+                    );
+                }
+                ctx.restore();
+                // 新增：绘制节点信息
+                // 新增节点信息绘制部分
+                if (state.nodeInfo && state.nodeInfo[comp.name]) {
+                    const nodeData = state.nodeInfo[comp.name];
+                    const pins = getComponentPins(comp);
+                    const ctx = currentContext;
+
+                    // 保存当前绘图状态
+                    ctx.save();
+                    ctx.font = '12px Arial';
+                    ctx.fillStyle = '#90EE90'; // 浅绿色
+                    ctx.textBaseline = 'middle';
+
+                    // 绘制第一个引脚节点信息
+                    if (pins.length >= 1 && nodeData.node1) {
+                        drawPinLabel(ctx, pins[0], nodeData.node1, comp.rotation, true);
+                    }
+
+                    // 绘制第二个引脚节点信息
+                    if (pins.length >= 2 && nodeData.node2) {
+                        drawPinLabel(ctx, pins[1], nodeData.node2, comp.rotation, false);
+                    }
+
+                    ctx.restore();
+
+
+                }
+            }
+            function drawPinLabel(ctx, pinPos, label, rotation, isFirstPin) {
+                const offset = 10; // 基础偏移量
+                let dx, dy, align;
+
+                // 根据旋转角度确定标签位置
+                switch (rotation % 360) {
+                    case 0:   // 水平放置
+                        dx = isFirstPin ? -offset : offset;
+                        dy = -offset;
+                        align = isFirstPin ? 'right' : 'left';
+                        break;
+                    case 90:  // 顺时针旋转90度
+                        dx = offset;
+                        dy = isFirstPin ? -offset : offset;
+                        align = 'left';
+                        break;
+                    case 180: // 旋转180度
+                        dx = isFirstPin ? offset : -offset;
+                        dy = offset;
+                        align = isFirstPin ? 'left' : 'right';
+                        break;
+                    case 270: // 旋转270度
+                        dx = -offset;
+                        dy = isFirstPin ? offset : -offset;
+                        align = 'right';
+                        break;
+                }
+
+                // 应用文本对齐方式
+                ctx.textAlign = align;
+
+                // // 添加文字阴影提升可读性
+                // ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                // ctx.shadowOffsetX = 1;
+                // ctx.shadowOffsetY = 1;
+
+                // 绘制文本
+                ctx.fillText(
+                    label,
+                    pinPos.x + dx,
+                    pinPos.y + dy
+                );
+            }
+
+
+            // 增强标签偏移计算
+            function getLabelOffset(type) {
+                const offsets = {
+                    capacitor: 25,  // 电容器标签下移
+                    resistor: -20, // 电阻标签上移
+                    inductor: 30,
+                    diode: 25,
+                    voltage: -20,   // 电源符号上方
+                    BVoltage: -20,   // 电源符号上方
+                    ground: 40,
+                    label: 40
+                };
+                return offsets[type] || 20;
+            }
+
+            // 新增引脚中心计算
+            function calculatePinCenter(type) {
+                // 检查组件类型是否存在且模板包含pins数组
+                const template = ComponentTemplates[type];
+                if (!template || !Array.isArray(template.pins)) {
+                    return { x: 0, y: 0 }; // 返回默认中心
+                }
+
+                const pins = template.pins;
+                const sum = pins.reduce((acc, p) => {
+                    return { x: acc.x + p.x, y: acc.y + p.y };
+                }, { x: 0, y: 0 });
+
+                return {
+                    x: sum.x / pins.length,
+                    y: sum.y / pins.length
+                };
+            }
+
+
+            function drawWires() {
+                // 线条样式（在函数顶部添加）
+                currentContext.strokeStyle = hoveredWire ? '#00BFFF' : '#2c3e50';
+                currentContext.lineWidth = hoveredWire ? 4 : 2;
+
+                // 绘制已保存线路
+                state.wires.forEach(wire => {
+                    // 关键修改：优先判断选中状态
+                    // 增强判断逻辑
+                    const isDragging = draggingWire?.wire === wire;
+                    const isSelected = (wire === state.selected.wire && !draggingComponent) || isDragging;
+
+                    currentContext.strokeStyle = isSelected ? '#00BFFF' : '#2c3e50';
+                    currentContext.lineWidth = isSelected ? (isDragging ? 4 : 3) : 2;
+
+                    // 绘制导线路径
+                    drawWirePath(wire.points);
+
+                    // 绘制端点（仅在悬停或选中时显示特殊样式）
+                    drawWireEndpoints(wire);
+                });
+
+
+
+                // 绘制预览线段（原逻辑保留）
+                if (previewLine) {
+                    currentContext.strokeStyle = '#3498db';
+                    currentContext.lineWidth = 3;
+                    currentContext.setLineDash([5, 3]);
+                    currentContext.beginPath();
+                    currentContext.moveTo(previewLine.start.x, previewLine.start.y);
+                    currentContext.lineTo(previewLine.end.x, previewLine.end.y);
+                    currentContext.stroke();
+                    currentContext.setLineDash([]);
+                }
+            }
+
+            function drawWirePath(points) {
+                currentContext.beginPath();
+                points.forEach((p, i) => {
+                    i === 0 ? currentContext.moveTo(p.x, p.y) :
+                        currentContext.lineTo(p.x, p.y);
+                });
+                currentContext.stroke();
+            }
+            // 显示电流箭头
+            function showCurrentArrow(x, y, angle) {
+                // 获取电流箭头光标元素
+                const currentArrowCursor = document.getElementById('currentArrowCursor');
+                currentArrowCursor.style.display = 'block';
+                currentArrowCursor.style.left = `${x - 16}px`;
+                currentArrowCursor.style.top = `${y - 16}px`;
+                currentArrowCursor.style.transform = `rotate(${angle}deg)`;
+
+            }
+
+            // 隐藏电流箭头
+            function hideCurrentArrow() {
+                const currentArrowCursor = document.getElementById('currentArrowCursor');
+                currentArrowCursor.style.display = 'none';
+
+            }
+
+            // 显示针尖笔光标
+            function showPinCursor(x, y) {
+                const pinCursor = document.getElementById('pinCursor');
+                pinCursor.style.display = 'block';
+                pinCursor.style.left = `${x - 12}px`; // 居中显示
+                pinCursor.style.top = `${y - 12}px`;
+            }
+
+            // 隐藏针尖笔光标
+            function hidePinCursor() {
+                const pinCursor = document.getElementById('pinCursor');
+                pinCursor.style.display = 'none';
+            }
+
+            // ========== 修改后的重绘函数 ==========
+            function redraw() {
+
+                // 清理无效导线（新增保护逻辑）
+                state.wires = state.wires.filter(wire => {
+                    return wire.points &&
+                        wire.points.length === 2 &&
+                        !isNaN(wire.points[0].x) &&
+                        !isNaN(wire.points[1].x);
+                });
+                // 使用requestAnimationFrame优化渲染
+                requestAnimationFrame(() => {
+                    currentContext.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
+                    drawGrid();
+                    state.components.forEach(drawComponent);
+                    drawWires();
+                    //复制组件功能
+                    // 绘制选择矩形
+                    if (currentRect) {
+                        currentContext.strokeStyle = '#3498db';
+                        currentContext.lineWidth = 2;
+                        currentContext.setLineDash([5, 3]);
+                        currentContext.strokeRect(
+                            currentRect.x,
+                            currentRect.y,
+                            currentRect.width,
+                            currentRect.height
+                        );
+                        currentContext.setLineDash([]);
+
+                        currentContext.fillStyle = 'rgba(52, 152, 219, 0.1)';
+                        currentContext.fillRect(
+                            currentRect.x,
+                            currentRect.y,
+                            currentRect.width,
+                            currentRect.height
+                        );
+                    }
+
+                    // 绘制复制组预览
+                    if (isPlacingGroup) {
+                        // 绘制组件预览
+                        copiedComponents.forEach(comp => {
+                            currentContext.save();
+                            currentContext.globalAlpha = 0.6;
+                            const tempComp = {
+                                ...comp,
+                                x: comp.previewX,
+                                y: comp.previewY
+                            };
+                            drawComponent(tempComp);
+                            currentContext.restore();
+                        });
+
+                        // 绘制导线预览
+                        copiedWires.forEach(wire => {
+                            currentContext.save();
+                            currentContext.globalAlpha = 0.6;
+                            currentContext.strokeStyle = '#3498db';
+                            currentContext.lineWidth = 2;
+                            currentContext.setLineDash([5, 3]);
+
+                            currentContext.beginPath();
+                            wire.previewPoints.forEach((p, i) => {
+                                i === 0 ? currentContext.moveTo(p.x, p.y) : currentContext.lineTo(p.x, p.y);
+                            });
+                            currentContext.stroke();
+
+                            currentContext.restore();
+                        });
+                    }
+                });
+            }
+
+            // ========== 工具函数 ==========
+            function getCanvasPos(e, applyGrid = true) {
+                const rect = currentCanvas.getBoundingClientRect();
+                let rawX = e.clientX - rect.left;
+                let rawY = e.clientY - rect.top;
+
+                // 连线模式强制应用网格
+                if (currentMode === 'wiring') applyGrid = true;
+
+                if (applyGrid) {
+                    return snapToGrid({ x: rawX, y: rawY });
+                }
+                return { x: rawX, y: rawY };
+            }
+
+            // 动态磁吸算法
+            // 修改后的dynamicMagneticSnap函数（完全吸附模式）
+            function dynamicMagneticSnap(pos) {
+                if (currentMode !== 'placing' || !currentComponent) {
+                    return snapToGrid(pos);
+                }
+
+                const pins = ComponentMeta[currentComponent].pins;
+                const rotation = currentRotation;
+                const rad = rotation * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                // 生成所有可能的吸附候选点
+                const candidates = pins.flatMap(p => {
+                    // 计算旋转后的绝对引脚位置
+                    const absX = pos.x + (p.x * cos - p.y * sin);
+                    const absY = pos.y + (p.x * sin + p.y * cos);
+
+                    // 对齐到最近的网格点
+                    const gridX = Math.round(absX / GRID_SIZE) * GRID_SIZE;
+                    const gridY = Math.round(absY / GRID_SIZE) * GRID_SIZE;
+
+                    // 计算元件中心需要调整的偏移量
+                    return {
+                        x: pos.x + (gridX - absX),
+                        y: pos.y + (gridY - absY),
+                        priority: Math.abs(gridX - absX) + Math.abs(gridY - absY) // 吸附优先级
+                    };
+                });
+
+                // 选择最优吸附点（最小移动距离）
+                const best = candidates.reduce((best, curr) =>
+                    curr.priority < best.priority ? curr : best
+                    , { priority: Infinity });
+
+                // 强制完全吸附（覆盖渐进式效果）
+                return {
+                    x: pos.x + (best.x - pos.x),
+                    y: pos.y + (best.y - pos.y)
+                };
+            }
+
+            function updateHoverState(pos) {
+                // 仅在normal模式更新悬停状态
+                if (currentMode !== 'normal') {
+                    hoveredWire = null;
+                    hoveredEndpoint = null;
+                    state.selected.component = null;
+                    state.selected.wire = null;
+                    return;
+                }
+                // 重置状态
+                hoveredWire = null;
+                hoveredEndpoint = null;
+                state.selected.component = null;
+                // 优先检测当前悬停导线的端点
+                const currentWire = findWireAt(pos);
+                if (currentWire) {
+                    // 只检测当前导线的端点
+                    hoveredEndpoint = findWireEndpointsForWire(currentWire, pos);
+                    if (!hoveredEndpoint) {
+                        hoveredWire = currentWire;
+                    }
+                } else {
+                    // 没有悬停导线时检测所有端点
+                    hoveredEndpoint = findWireEndpoint(pos);
+                }
+                if (hoveredEndpoint) return;
+                if (hoveredWire) return;
+                // 3. 最后检测组件
+                state.selected.component = findComponentAt(pos);
+            }
+
+            // 新增：检测指定导线的端点
+            function findWireEndpointsForWire(wire, pos) {
+                const threshold = 8;
+                // 检测起点
+                if (Math.hypot(pos.x - wire.points[0].x, pos.y - wire.points[0].y) < threshold) {
+                    return { wire: wire, index: 0 };
+                }
+                // 检测终点
+                if (Math.hypot(pos.x - wire.points[1].x, pos.y - wire.points[1].y) < threshold) {
+                    return { wire: wire, index: 1 };
+                }
+                return null;
+            }
+
+            function snapToGrid(pos) {
+                // 高精度对齐（4像素阈值）
+                const xRemainder = pos.x % GRID_SIZE;
+                const yRemainder = pos.y % GRID_SIZE;
+
+                return {
+                    x: Math.abs(xRemainder) < 4 ?
+                        pos.x - xRemainder :
+                        Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
+
+                    y: Math.abs(yRemainder) < 4 ?
+                        pos.y - yRemainder :
+                        Math.round(pos.y / GRID_SIZE) * GRID_SIZE
+                };
+            }
+
+            // 修改findNearestPin函数增强容错性
+            function findNearestPin(pos) {
+                let minDist = Infinity;
+                let nearest = null;
+
+                state.components.forEach(comp => {
+                    ComponentTemplates[comp.type].pins.forEach(pin => {
+                        const absX = comp.x + pin.x;
+                        const absY = comp.y + pin.y;
+                        const dist = Math.hypot(pos.x - absX, pos.y - absY);
+
+                        if (dist < 10 && dist < minDist) {
+                            minDist = dist;
+                            nearest = { x: absX, y: absY };
+                        }
+                    });
+                });
+
+                // 没有找到引脚时返回null
+                return minDist < 10 ? nearest : null;
+            }
+
+            // 新增辅助函数
+            function snapToGrid(pos) {
+                return {
+                    x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
+                    y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE
+                };
+            }
+
+
+            function showContextMenu(x, y) {
+                const menu = document.getElementById('contextMenu');
+                menu.style.display = 'block';
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+
+                // 阻止事件冒泡
+                menu.addEventListener('click', e => e.stopPropagation());
+
+                // 修改showContextMenu函数中的点击处理
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.onclick = (e) => {
+                        // 进入特殊模式时清除选中状态（新增）
+                        state.selected.component = null;
+                        state.selected.wire = null;
+                        e.stopPropagation();
+                        const type = item.dataset.type;
+                        currentComponent = type;
+                        currentMode = type === 'wire' ? 'wiring' : 'placing'; // 设置模式
+                        menu.style.display = 'none';
+
+                        // 导线模式处理
+                        if (currentMode === 'wiring') {
+                            document.getElementById('crosshairCursor').style.display = 'block';
+                            currentCanvas.style.cursor = 'none';
+                            isPlacing = false; // 关键修复：禁用放置模式状态
+                        }
+                        // 元件放置模式处理
+                        else {
+                            isPlacing = true;
+                            currentCanvas.style.cursor = 'none';
+                            redrawPreview(); // 仅元件需要预览
+                        }
+                    };
+                });
+            }
+            // 检查点是否在非法位置（导线内部或组件内部非引脚处）
+            // 检测点是否处于非法位置
+            function isPointIllegal(pos) {
+                // 检查导线线段内部（排除端点）
+                const onWireSegment = state.wires.some(wire => {
+                    for (let i = 0; i < wire.points.length - 1; i++) {
+                        const a = wire.points[i];
+                        const b = wire.points[i + 1];
+                        if (distanceToSegment(pos, a, b) < 5 &&
+                            !isSamePoint(pos, a) &&
+                            !isSamePoint(pos, b)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+
+                // 检查组件内部非引脚位置
+                const inComponent = state.components.some(c => {
+                    if (c === draggingComponent) return false; // 排除自己
+                    const bounds = getComponentBounds(c);
+                    return pos.x >= bounds.left &&
+                        pos.x <= bounds.right &&
+                        pos.y >= bounds.top &&
+                        pos.y <= bounds.bottom &&
+                        !getComponentPins(c).some(p =>
+                            Math.hypot(p.x - pos.x, p.y - pos.y) < PIN_RADIUS
+                        );
+                });
+
+                return onWireSegment || inComponent;
+            }
+
+            // 获取组件所有引脚的实际坐标
+            function getComponentPins(comp) {
+                const template = ComponentTemplates[comp.type];
+                const rad = comp.rotation * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                return template.pins.map(p => ({
+                    x: comp.x + (p.x * cos - p.y * sin),
+                    y: comp.y + (p.x * sin + p.y * cos)
+                }));
+            }
+
+            // 判断两点是否相同
+            function isSamePoint(a, b) {
+                return a.x === b.x && a.y === b.y;
+            }
+            // 在模块顶部添加
+            function findWireEnds(wire) {
+                return [wire.points[0], wire.points[1]];
+            }
+            function getWireDirection(wire) {
+                const [p1, p2] = wire.points;
+                return p1.y === p2.y ? 'horizontal' : 'vertical';
+            }
+
+            function countEndpointsAt(point) {
+                // 统计所有导线端点
+                let count = 0;
+                state.wires.forEach(w => {
+                    w.points.forEach(p => {
+                        if (isSamePoint(p, point)) count++;
+                    });
+                });
+
+                // 统计元件引脚
+                state.components.forEach(comp => {
+                    getComponentPins(comp).forEach(pin => {
+                        if (isSamePoint(pin, point)) count++;
+                    });
+                });
+                return count;
+            }
+
+
+
+            // 修改后的mergeWires函数
+            function mergeWires() {
+                let merged = false;
+                const wires = [...state.wires];
+                const mergedWires = new Set();
+
+                for (let i = 0; i < wires.length; i++) {
+                    if (mergedWires.has(wires[i])) continue;
+
+                    for (let j = i + 1; j < wires.length; j++) {
+                        if (mergedWires.has(wires[j])) continue;
+
+                        const wireA = wires[i];
+                        const wireB = wires[j];
+
+                        // 检查导线方向是否相同
+                        const dirA = getWireDirection(wireA);
+                        const dirB = getWireDirection(wireB);
+                        if (dirA !== dirB) continue;
+
+                        // 寻找连接点（端点必须完全重合）
+                        let connection = null;
+                        const endpointsA = [wireA.points[0], wireA.points[1]];
+                        const endpointsB = [wireB.points[0], wireB.points[1]];
+
+                        for (const a of endpointsA) {
+                            for (const b of endpointsB) {
+                                if (isSamePoint(a, b)) {
+                                    // 验证连接点是否只有这两个端点
+                                    if (countEndpointsAt(a) === 2) {
+                                        connection = a;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (connection) break;
+                        }
+
+                        if (!connection) continue;
+
+                        // 确定合并后的端点
+                        const remainingA = endpointsA.find(p => !isSamePoint(p, connection));
+                        const remainingB = endpointsB.find(p => !isSamePoint(p, connection));
+
+                        // 确保新导线方向正确
+                        const newPoints = dirA === 'horizontal' ?
+                            [{ x: Math.min(remainingA.x, remainingB.x), y: connection.y },
+                            { x: Math.max(remainingA.x, remainingB.x), y: connection.y }] :
+                            [{ x: connection.x, y: Math.min(remainingA.y, remainingB.y) },
+                            { x: connection.x, y: Math.max(remainingA.y, remainingB.y) }];
+
+                        // 创建新导线并标记旧导线
+                        state.wires.push({
+                            points: newPoints,
+                            connections: [...wireA.connections, ...wireB.connections]
+                        });
+
+                        mergedWires.add(wireA);
+                        mergedWires.add(wireB);
+                        merged = true;
+                        break;
+                    }
+                }
+
+                // 清理已合并的旧导线
+                state.wires = state.wires.filter(w => !mergedWires.has(w));
+                if (merged) redraw();
+                return merged;
+            }
+            function getEndpointCounts() {
+                const counts = new Map();
+
+                // 统计组件引脚
+                state.components.forEach(comp => {
+                    getComponentPins(comp).forEach(pin => {
+                        const key = `${pin.x},${pin.y}`;
+                        counts.set(key, (counts.get(key) || 0) + 1);
+                    });
+                });
+
+                // 统计导线端点
+                state.wires.forEach(wire => {
+                    wire.points.forEach(point => {
+                        const key = `${point.x},${point.y}`;
+                        counts.set(key, (counts.get(key) || 0) + 1);
+                    });
+                });
+
+                return counts;
+            }
+            // 私有方法 - 获取所有元件信息,暂时没用到
+            // function getAllComponentsInfo() {
+            //     return state.components.map(comp => {
+            //         const pins = calculateComponentPins(comp);
+            //         return {
+            //             type: comp.type,
+            //             name: comp.name,
+            //             value: comp.value,
+            //             rotation: comp.rotation,
+            //             pins: formatPinsData(comp.type, pins)
+            //         };
+            //     });
+            // }
+
+            // 私有方法 - 获取所有导线信息
+            function getAllWiresInfo() {
+                return state.wires.map(wire => ({
+                    start: { x: wire.points[0].x, y: wire.points[0].y },
+                    end: { x: wire.points[1].x, y: wire.points[1].y }
+                }));
+            }
+
+            // 私有方法 - 计算元件引脚坐标
+            function calculateComponentPins(comp) {
+                const template = ComponentTemplates[comp.type];
+                const rad = comp.rotation * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                return template.pins.map(p => ({
+                    x: comp.x + (p.x * cos - p.y * sin),
+                    y: comp.y + (p.x * sin + p.y * cos)
+                }));
+            }
+
+            // // 私有方法 - 格式化引脚数据
+            // function formatPinsData(type, pins) {
+            //     if (type === 'ground') {
+            //         return { position: pins[0] };
+            //     }
+            //     return {
+            //         pin1: pins[0],
+            //         pin2: pins[1]
+            //     };
+            // }
+            function clearCanvas() {
+                //清除文件输入框
+                document.getElementById('myForm').reset();
+                //画布初始化
+                // state.params = { stopTime: "1e-3", maxStep: "", saveTime: "" }
+                // state.textCommand = "",
+                //     state.counters = { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 }
+                // state.selected = { wire: null, component: null } // 新增选中状态
+                // state.components = [];
+                // state.wires = [];
+                // state.fileName = null;  // 重置文件名
+                // state.elementStack = [];
+                // //重置节点信息
+                // state.nodeInfo = [];
+                // state.simulatedData = [];
+                state = {
+                    fileName: null,
+                    components: [],
+                    wires: [],
+                    params: { stopTime: "1e-3", maxStep: "", saveTime: "" },
+                    counters: { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 },
+                    selected: { wire: null, component: null }, // 新增选中状态
+                    elementStack: [], // 存储元素层级顺序 [{type:'wire',id}, {type:'comp',id}]
+                    nodeInfo: {},// 新增节点信息存储
+                    simulatedData: {},
+                    textCommand: "", // 新增文本命令存储
+                    selectedVars: [],
+                    plotWindow: null,
+                    // ... 原有状态 ...
+                    oscilloscopes: [], // 存储所有示波器实例
+                    minimizedOscilloscopes: [], // 存储最小化的示波器实例
+                    currentZIndex: 1000, // 初始 z-index 值
+                    targetCurves: null
+                };
+                //更新文件名显示
+                updateFileNameDisplay()
+                redraw();
+            }
+
+            // 添加检查内容方法
+            function hasContent() {
+                return state.components.length > 0 || state.wires.length > 0;
+            }
+            function loadFromJSON(data) {
+                // 清空当前状态
+                state.components = [];
+                state.wires = [];
+                state.fileName = data.fileName;;
+                state.params.maxStep = data.simulationParams.maxStep;
+                state.params.saveTime = data.simulationParams.saveTime;
+                state.params.stopTime = data.simulationParams.stopTime
+                state.textCommand = data.textCommand || state.textCommand;
+
+                // 加载组件
+                data.components.forEach(compData => {
+                    const comp = {
+                        type: compData.type,
+                        name: compData.name,
+                        value: compData.value,
+                        x: compData.x,
+                        y: compData.y,
+                        rotation: compData.rotation || 0
+                    };
+                    state.components.push(comp);
+                });
+
+                // 加载导线
+                data.wires.forEach(wireData => {
+                    state.wires.push({
+                        // id: Date.now(),
+                        points: wireData.points,
+                        connections: []
+                    });
+                });
+
+                // 更新元件名称计数器
+                updateCounters(data.components);
+
+                // 重绘画布
+                redraw();
+                //更新文件名显示
+                updateFileNameDisplay()
+            }
+            //选中并读入本地json文件
+            document.getElementById('fileInput').addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const jsonData = JSON.parse(e.target.result);
+                            //加载之前先处理画布状态
+                            CircuitDesigner.newProject()
+                            loadFromJSON(jsonData)
+                            console.log('从本地获取到的json电路数据：', jsonData);
+                            // 在这里可以对获取到的 JSON 数据进行进一步处理
+                        } catch (error) {
+                            console.error('解析 JSON 文件出错：', error);
+                        }
+                    };
+                    reader.onerror = function () {
+                        console.error('读取文件出错');
+                    };
+                    reader.readAsText(file);
+                }
+            })
+            // 辅助方法：更新元件名称计数器
+            function updateCounters(components) {
+                const counters = { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 };
+
+                components.forEach(comp => {
+                    const match = comp.name.match(/^([^\d]+)(\d+)$/);
+                    if (match) {
+                        const prefix = match[1].toUpperCase();
+                        const num = parseInt(match[2], 10);
+                        if (counters.hasOwnProperty(prefix)) {
+                            counters[prefix] = Math.max(counters[prefix], num + 1);
+                        }
+                    }
+                });
+
+                // 更新状态中的计数器
+                Object.keys(counters).forEach(key => {
+                    state.counters[key] = counters[key];
+                });
+            }
+            // //电路信息转网表字符串
+            // // 添加网表生成方法
+            // function generateNetlist(circuitData) {
+            //     const componentMap = {
+            //         resistor: 'R',
+            //         capacitor: 'C',
+            //         inductor: 'L',
+            //         voltage: 'V',
+            //         diode: 'D'
+            //     };
+
+            //     const nodes = new Map();  // 存储坐标到节点名称的映射
+            //     const groundPoints = new Set();
+            //     let nodeCounter = 1;
+
+            //     // 1. 处理接地节点
+            //     circuitData.components.forEach(comp => {
+            //         if (comp.type === 'ground') {
+            //             const pins = calculatePins(comp);
+            //             pins.forEach(pin => {
+            //                 const key = `${pin.x},${pin.y}`;
+            //                 groundPoints.add(key);
+            //                 nodes.set(key, '0');
+            //             });
+            //         }
+            //     });
+
+            //     // 2. 生成普通节点
+            //     const processPoint = (x, y) => {
+            //         const key = `${x},${y}`;
+            //         if (!nodes.has(key)) {
+            //             nodes.set(key, groundPoints.has(key) ? '0' : `N${nodeCounter++}`);
+            //         }
+            //         return nodes.get(key);
+            //     };
+
+            //     // 3. 生成元件定义
+            //     let netlist = '';
+            //     circuitData.components.forEach(comp => {
+            //         if (!componentMap[comp.type]) {
+            //             throw new Error(`不支持的元件类型: ${comp.type}`);
+            //         }
+
+            //         const pins = calculatePins(comp);
+            //         if (pins.length < 1) {
+            //             throw new Error(`${comp.name} 缺少引脚定义`);
+            //         }
+
+            //         const prefix = componentMap[comp.type];
+            //         const value = parseComponentValue(comp);
+
+            //         // 处理不同元件类型的连接方式
+            //         switch (comp.type) {
+            //             case 'resistor':
+            //             case 'capacitor':
+            //             case 'inductor':
+            //             case 'diode':
+            //                 if (pins.length !== 2) throw new Error(`${comp.name} 需要两个引脚`);
+            //                 netlist += `${prefix}${comp.name} ${processPoint(pins[0].x, pins[0].y)} ` +
+            //                     `${processPoint(pins[1].x, pins[1].y)} ${value}\n`;
+            //                 break;
+
+            //             case 'voltage':
+            //                 if (pins.length !== 2) throw new Error(`${comp.name} 需要两个引脚`);
+            //                 netlist += `${prefix}${comp.name} ${processPoint(pins[0].x, pins[0].y)} ` +
+            //                     `${processPoint(pins[1].x, pins[1].y)} ${value}\n`;
+            //                 break;
+            //         }
+            //     });
+
+            //     // 4. 添加仿真指令
+            //     netlist += `.tran 0 ${circuitData.simulationParams.stopTime} 0 ${circuitData.simulationParams.maxStep}\n`;
+            //     netlist += `.backanno\n.end\n`;
+            //     return netlist;
+            // }
+
+            // 计算元件引脚坐标（考虑旋转）
+            function calculatePins(comp) {
+                const template = ComponentTemplates[comp.type];
+                const rad = comp.rotation * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                return template.pins.map(p => ({
+                    x: Math.round(comp.x + (p.x * cos - p.y * sin)),
+                    y: Math.round(comp.y + (p.x * sin + p.y * cos))
+                }));
+            }
+
+            // 解析元件数值
+            function parseComponentValue(comp) {
+                const unitMap = {
+                    'Ω': '',
+                    'V': '',
+                    'F': '',
+                    'H': '',
+                    'A': '',
+                    'W': ''
+                };
+
+                // 移除非法字符并转换单位
+                return comp.value.replace(/[\uΩµUFmKkMGHVD]+/g, m =>
+                    m === 'µ' ? 'u' :
+                        m === 'Ω' ? '' :
+                            unitMap[m] || m
+                ).toUpperCase();
+            }
+            //判断输入是否符合可带单位的时间数值
+            function isValidTimeValue(str) {
+                if (str === '') return true;
+                // 正则表达式分解说明：
+                // ^\d+          => 至少1位整数部分
+                // (\.\d+)?      => 可选的小数部分
+                // (?:[eE][+-]?\d+)? => 科学计数法部分（如e5、E-3）
+                // (s|ms|us|ns)$ => 允许的时间单位后缀
+                // 或纯数字情况（无单位）
+                const regex = /^(\d+(?:\.\d+)?)(?:[eE][+-]?\d+)?(s|ms|us|ns|m|u|n)?$/;
+                return regex.test(str);
+            }
+            function isValidVoltageValue(str) {
+                const regex = /^(\d+(?:\.\d+)?)(?:[eE][+-]?\d+)?(kv|Kv|kV|KV|v|V|mv|mV|uv|uV|nv|nV|m|u|n)?$/;
+                return regex.test(str);
+            }
+            function isValidCapValue(str) {
+                const regex = /^(\d+(?:\.\d+)?)(?:[eE][+-]?\d+)?(kf|kF|Kf|KF|f|F|mf|mF|uf|uF|nf|nF|m|u|n)?$/;
+                return regex.test(str);
+            }
+            function isValidIndValue(str) {
+                const regex = /^(\d+(?:\.\d+)?)(?:[eE][+-]?\d+)?(kh|kH|Kh|KH|h|H|mh|mH|uh|uH|nh|nH|m|u|n)?$/;
+                return regex.test(str);
+            }
+            function isValidResValue(str) {
+                const regex = /^(\d+(?:\.\d+)?)(?:[eE][+-]?\d+)?(kΩ|KΩ|Ω|mΩ|uΩ|nΩ|m|u|n)?$/;
+                return regex.test(str);
+            }
+
+            //复制功能代码
+            function createCopyIndicator() {
+                // 创建+号光标
+                copyIndicator = document.createElement('div');
+                copyIndicator.id = 'copyIndicator';
+                copyIndicator.textContent = '+';
+                copyIndicator.style.position = 'fixed';
+                copyIndicator.style.pointerEvents = 'none';
+                copyIndicator.style.zIndex = '1001';
+                copyIndicator.style.fontSize = '24px';
+                copyIndicator.style.color = '#3498db';
+                copyIndicator.style.fontWeight = 'bold';
+                document.body.appendChild(copyIndicator);
+                // plusSign.style.display = 'block';
+                // 创建+号光标
+
+            }
+            //移动功能代码
+            function createMoveIndicator() {
+                // 创建/号光标
+                moveIndicator = document.createElement('div');
+                moveIndicator.id = 'moveIndicator';
+                moveIndicator.textContent = '->';
+                moveIndicator.style.position = 'fixed';
+                moveIndicator.style.pointerEvents = 'none';
+                moveIndicator.style.zIndex = '1001';
+                moveIndicator.style.fontSize = '24px';
+                moveIndicator.style.color = '#3498db';
+                moveIndicator.style.fontWeight = 'bold';
+                document.body.appendChild(moveIndicator);
+                // plusSign.style.display = 'block';
+                // 创建+号光标
+
+            }
+            //删除功能代码
+            function createDeleteIndicator() {
+                // 创建×号光标
+                deleteIndicator = document.createElement('div');
+                deleteIndicator.id = 'moveIndicator';
+                deleteIndicator.textContent = '×';
+                deleteIndicator.style.position = 'fixed';
+                deleteIndicator.style.pointerEvents = 'none';
+                deleteIndicator.style.zIndex = '1001';
+                deleteIndicator.style.fontSize = '24px';
+                deleteIndicator.style.color = '#3498db';
+                deleteIndicator.style.fontWeight = 'bold';
+                document.body.appendChild(deleteIndicator);
+                // plusSign.style.display = 'block';
+                // 创建+号光标
+
+            }
+
+            function exitCopyMode() {
+                currentMode = "normal";
+                copyMode = false;
+                isRectDragging = false;
+                isPlacingGroup = false;
+                currentRect = null;
+                copiedComponents = [];
+                copiedWires = [];
+                if (copyIndicator) copyIndicator.style.display = 'none';
+                currentCanvas.style.cursor = 'default';
+                redraw();
+            }
+            function exitMoveMode() {
+                currentMode = "normal";
+                moveMode = false;
+                isRectDragging = false;
+                isPlacingGroup = false;
+                currentRect = null;
+                copiedComponents = [];
+                copiedWires = [];
+                if (moveIndicator) moveIndicator.style.display = 'none';
+                currentCanvas.style.cursor = 'default';
+                redraw();
+            }
+            function exitDeleteMode() {
+                currentMode = "normal";
+                deleteMode = false;
+                isRectDragging = false;
+                isPlacingGroup = false;
+                currentRect = null;
+                copiedComponents = [];
+                copiedWires = [];
+                if (deleteIndicator) deleteIndicator.style.display = 'none';
+                currentCanvas.style.cursor = 'default';
+                redraw();
+            }
+            // 在CircuitDesigner模块中添加方法
+            function plotSimulatedData(varName) {
+                // 检查数据是否存在
+                if (!state.simulatedData.time || !state.simulatedData[varName]) {
+                    console.warn(`变量 ${varName} 没有仿真数据`);
+                    return;
+                }
+
+                // 检查是否已存在相同变量的示波器
+                const existingOsc = [...state.oscilloscopes, ...state.minimizedOscilloscopes]
+                    .find(osc => osc.varName === varName);
+
+                if (existingOsc) {
+                    // 如果已最小化，则恢复
+                    if (existingOsc.isMinimized) {
+                        existingOsc.restore();
+                    }
+                    // 将窗口置顶
+                    existingOsc.windowElement.style.zIndex = '10000';
+                    return;
+                }
+
+                // 创建新的示波器实例
+                const osc = new Oscilloscope(varName);
+                state.oscilloscopes.push(osc);
+
+                // 设置数据
+                osc.setData({
+                    time: state.simulatedData.time,
+                    [varName]: state.simulatedData[varName]
+                });
+            }
+
+
+            // 在CircuitDesigner模块中添加示波器类
+            class Oscilloscope {
+                constructor(varName) {
+                    this.varName = varName;
+                    this.data = null;
+                    this.isMinimized = false;
+                    this.windowElement = null;
+                    this.canvas = null;
+                    this.ctx = null;
+                    this.minimizedItem = null;
+                    this.view = {
+                        xMin: 0,
+                        xMax: 1,
+                        yMin: -1,
+                        yMax: 1,
+                        scale: 1.0,
+                        offsetX: 0
+                    };
+                    this.createWindow();
+                    // 新增窗口层级管理
+                    this.zIndex = state.currentZIndex++;
+                    this.windowElement.style.zIndex = this.zIndex;
+
+                    // 添加点击事件处理
+                    this.windowElement.addEventListener('mousedown', () => {
+                        this.bringToFront();
+                    });
+                }
+                // 新增方法：将窗口置顶
+                bringToFront() {
+                    state.currentZIndex++;
+                    this.zIndex = state.currentZIndex;
+                    this.windowElement.style.zIndex = this.zIndex;
+                }
+
+                createWindow() {
+                    // 克隆模板
+                    const template = document.getElementById('oscilloscopeTemplate');
+                    this.windowElement = template.cloneNode(true);
+                    this.windowElement.id = ''; // 清除id
+                    this.windowElement.style.display = 'block';
+                    this.windowElement.querySelector('.var-name').textContent = this.varName;
+
+                    this.canvas = this.windowElement.querySelector('.oscilloscope-canvas');
+                    this.ctx = this.canvas.getContext('2d');
+
+                    // 设置初始大小
+                    this.canvas.width = 600;
+                    this.canvas.height = 400;
+
+                    // 添加事件监听
+                    this.windowElement.querySelector('.minimize-btn').addEventListener('click', () => this.minimize());
+                    this.windowElement.querySelector('.close-btn').addEventListener('click', () => this.close());
+
+                    // 添加控件事件
+                    this.windowElement.querySelector('.zoom-in').addEventListener('click', () => this.zoom(1.2));
+                    this.windowElement.querySelector('.zoom-out').addEventListener('click', () => this.zoom(0.8));
+                    this.windowElement.querySelector('.pan-left').addEventListener('click', () => this.pan(-0.1));
+                    this.windowElement.querySelector('.pan-right').addEventListener('click', () => this.pan(0.1));
+                    this.windowElement.querySelector('.reset-view').addEventListener('click', () => this.resetView());
+
+                    // 添加拖拽功能
+                    const header = this.windowElement.querySelector('.dialog-header');
+                    let isDragging = false;
+                    let startX, startY, startLeft, startTop;
+
+                    // 在Oscilloscope类的createWindow方法中修改拖拽逻辑
+                    header.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+
+                        // 获取当前窗口的实际位置（考虑transform）
+                        const rect = this.windowElement.getBoundingClientRect();
+                        startLeft = rect.left;
+                        startTop = rect.top;
+
+                        // 清除transform属性
+                        this.windowElement.style.transform = 'none';
+                        this.windowElement.style.left = startLeft + 'px';
+                        this.windowElement.style.top = startTop + 'px';
+
+                        e.preventDefault();
+                    });
+
+                    // 在mousemove事件中添加边界检查
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+
+                        let newLeft = startLeft + dx;
+                        let newTop = startTop + dy;
+
+                        // 边界检查：确保窗口不会移出视口
+                        const minLeft = 0;
+                        const minTop = 0;
+                        const maxLeft = window.innerWidth - this.windowElement.offsetWidth;
+                        const maxTop = window.innerHeight - this.windowElement.offsetHeight;
+
+                        newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
+                        newTop = Math.max(minTop, Math.min(newTop, maxTop));
+
+                        this.windowElement.style.left = newLeft + 'px';
+                        this.windowElement.style.top = newTop + 'px';
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            // 恢复样式
+                            this.windowElement.style.transition = '';
+                            document.body.style.userSelect = '';
+                        }
+                    });
+
+                    document.body.appendChild(this.windowElement);
+
+                    // 初始位置居中
+                    this.windowElement.style.left = '50%';
+                    this.windowElement.style.top = '50%';
+                    this.windowElement.style.transform = 'translate(-50%, -50%)';
+                }
+
+                setData(data) {
+                    this.data = data;
+                    this.autoScale();
+                    this.draw();
+                }
+
+                autoScale() {
+                    if (!this.data || !this.data.time || !this.data[this.varName]) return;
+
+                    const time = this.data.time;
+                    const values = this.data[this.varName];
+
+                    // 确保X轴从0开始
+                    this.view.xMin = Math.min(...time);
+                    this.view.xMax = Math.max(...time);
+
+                    // // 确保Y轴包含零点
+                    // const minValue = Math.min(...values);
+                    // const maxValue = Math.max(...values);
+
+                    // this.view.yMin = Math.min(minValue, 0);
+                    // this.view.yMax = Math.max(maxValue, 0);
+                    this.view.yMin = Math.min(...values);
+                    this.view.yMax = Math.max(...values);
+
+                    // 添加边距
+                    const xRange = this.view.xMax - this.view.xMin;
+                    const yRange = this.view.yMax - this.view.yMin;
+
+                    // 左边不留空白（因为0时刻就是起点），只增加右侧边距
+                    this.view.xMax += xRange * 0.05;
+                    this.view.yMin -= yRange * 0.1;
+                    this.view.yMax += yRange * 0.1;
+
+                    // 特殊处理：防止y轴范围过小
+                    if (Math.abs(this.view.yMax - this.view.yMin) < 1e-10) {
+                        this.view.yMin -= 0.1;
+                        this.view.yMax += 0.1;
+                    }
+                }
+
+                draw() {
+                    if (!this.data || !this.data.time || !this.data[this.varName]) return;
+
+                    const ctx = this.ctx;
+                    const width = this.canvas.width;
+                    const height = this.canvas.height;
+                    const time = this.data.time;
+                    const values = this.data[this.varName];
+
+                    // 清除画布
+                    ctx.clearRect(0, 0, width, height);
+
+                    // 绘制网格和坐标轴
+                    this.drawGrid();
+
+                    // 绘制曲线
+                    ctx.beginPath();
+                    time.forEach((t, i) => {
+                        const x = this.xToPixel(t);
+                        const y = this.yToPixel(values[i]);
+
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+
+                    ctx.strokeStyle = '#3498db';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                drawGrid() {
+                    const ctx = this.ctx;
+                    const width = this.canvas.width;
+                    const height = this.canvas.height;
+                    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+
+                    // 计算X轴刻度
+                    const xRange = this.view.xMax - this.view.xMin;
+                    const xTickInterval = this.calculateTickInterval(xRange);
+                    const xTicks = this.generateTicks(this.view.xMin, this.view.xMax, xTickInterval);
+
+                    // 计算Y轴刻度
+                    const yRange = this.view.yMax - this.view.yMin;
+                    const yTickInterval = this.calculateTickInterval(yRange);
+                    const yTicks = this.generateTicks(this.view.yMin, this.view.yMax, yTickInterval);
+
+                    // 绘制网格线
+                    ctx.strokeStyle = '#f0f0f0';
+                    ctx.lineWidth = 1;
+
+                    // X轴网格
+                    xTicks.forEach(tick => {
+                        const x = margin.left + (tick - this.view.xMin) / xRange * (width - margin.left - margin.right);
+                        ctx.beginPath();
+                        ctx.moveTo(x, margin.top);
+                        ctx.lineTo(x, height - margin.bottom);
+                        ctx.stroke();
+                    });
+
+                    // Y轴网格
+                    yTicks.forEach(tick => {
+                        const y = height - margin.bottom - (tick - this.view.yMin) / yRange * (height - margin.top - margin.bottom);
+                        ctx.beginPath();
+                        ctx.moveTo(margin.left, y);
+                        ctx.lineTo(width - margin.right, y);
+                        ctx.stroke();
+                    });
+
+                    // 绘制坐标轴
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+
+                    // X轴
+                    ctx.beginPath();
+                    ctx.moveTo(margin.left, height - margin.bottom);
+                    ctx.lineTo(width - margin.right, height - margin.bottom);
+                    ctx.stroke();
+
+                    // Y轴
+                    ctx.beginPath();
+                    ctx.moveTo(margin.left, margin.top);
+                    ctx.lineTo(margin.left, height - margin.bottom);
+                    ctx.stroke();
+
+                    // 绘制刻度标签
+                    ctx.fillStyle = '#333';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+
+                    // X轴标签
+                    xTicks.forEach(tick => {
+                        const x = margin.left + (tick - this.view.xMin) / xRange * (width - margin.left - margin.right);
+                        const label = this.formatNumber(tick, xRange, 's');
+                        ctx.fillText(label, x, height - margin.bottom + 5);
+                    });
+
+                    // Y轴标签
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    yTicks.forEach(tick => {
+                        const y = height - margin.bottom - (tick - this.view.yMin) / yRange * (height - margin.top - margin.bottom);
+                        const label = this.formatNumber(tick, yRange, '');
+                        ctx.fillText(label, margin.left - 5, y);
+                    });
+
+                    // 绘制坐标轴标题
+                    // ctx.textAlign = 'center';
+                    // ctx.fillText('时间 (' + this.getUnitPrefix(xRange, 's') + ')', width / 2, height - 10);
+
+                    // ctx.save();
+                    // ctx.translate(10, height / 2);
+                    // ctx.rotate(-Math.PI / 2);
+                    // ctx.textAlign = 'center';
+                    // ctx.fillText(this.varName, 0, 0);
+                    // ctx.restore();
+                }
+
+                calculateTickInterval(range) {
+                    // 根据范围动态调整目标刻度数
+                    const targetCount = range > 100 ? 12 : 8; // 大范围更多刻度
+
+                    const roughInterval = range / targetCount;
+                    const magnitude = Math.pow(10, Math.floor(Math.log10(roughInterval)));
+                    let interval = magnitude;
+
+                    // 更精细的刻度选择
+                    if (roughInterval / magnitude > 7.5) {
+                        interval = magnitude * 10;
+                    } else if (roughInterval / magnitude > 5) {
+                        interval = magnitude * 5;
+                    } else if (roughInterval / magnitude > 2.5) {
+                        interval = magnitude * 2.5;
+                    } else if (roughInterval / magnitude > 1.5) {
+                        interval = magnitude * 2;
+                    } else if (roughInterval / magnitude > 0.75) {
+                        interval = magnitude;
+                    } else {
+                        interval = magnitude * 0.5;
+                    }
+
+                    return interval;
+                }
+
+
+                generateTicks(min, max, interval) {
+                    const ticks = [];
+                    let tick = Math.ceil(min / interval) * interval;
+
+                    while (tick <= max) {
+                        ticks.push(tick);
+                        tick += interval;
+                    }
+
+                    return ticks;
+                }
+
+                formatNumber(value, range, unit) {
+                    // 根据范围自动调整单位
+                    const prefix = this.getUnitPrefix(range, unit);
+                    const scaledValue = value / prefix.scale;
+                    return scaledValue.toPrecision(4) + prefix.symbol;
+                }
+
+                getUnitPrefix(range, baseUnit) {
+                    // 自动选择合适的前缀
+                    if (range >= 1e9) {
+                        return { symbol: 'G' + baseUnit, scale: 1e9 };
+                    } else if (range >= 1e6) {
+                        return { symbol: 'M' + baseUnit, scale: 1e6 };
+                    } else if (range >= 1e3) {
+                        return { symbol: 'k' + baseUnit, scale: 1e3 };
+                    } else if (range >= 1) {
+                        return { symbol: baseUnit, scale: 1 };
+                    } else if (range >= 1e-3) {
+                        return { symbol: 'm' + baseUnit, scale: 1e-3 };
+                    } else if (range >= 1e-6) {
+                        return { symbol: 'μ' + baseUnit, scale: 1e-6 };
+                    } else if (range >= 1e-9) {
+                        return { symbol: 'n' + baseUnit, scale: 1e-9 };
+                    } else {
+                        return { symbol: baseUnit, scale: 1 };
+                    }
+                }
+
+                xToPixel(x) {
+                    const width = this.canvas.width;
+                    const margin = { left: 50, right: 30 };
+                    return margin.left + (x - this.view.xMin) / (this.view.xMax - this.view.xMin) * (width - margin.left - margin.right);
+                }
+
+                yToPixel(y) {
+                    const height = this.canvas.height;
+                    const margin = { top: 20, bottom: 40 };
+                    return height - margin.bottom - (y - this.view.yMin) / (this.view.yMax - this.view.yMin) * (height - margin.top - margin.bottom);
+                }
+
+                zoom(factor) {
+                    this.view.scale *= factor;
+                    this.draw();
+                }
+
+                pan(direction) {
+                    const range = this.view.xMax - this.view.xMin;
+                    this.view.offsetX += direction * range * 0.2;
+                    this.draw();
+                }
+
+                resetView() {
+                    this.view.scale = 1.0;
+                    this.view.offsetX = 0;
+                    this.autoScale();
+                    this.draw();
+                }
+
+                minimize() {
+                    this.isMinimized = true;
+                    this.windowElement.style.display = 'none';
+
+                    // 创建最小化项
+                    this.minimizedItem = document.createElement('div');
+                    this.minimizedItem.className = 'minimized-item';
+                    this.minimizedItem.textContent = this.varName;
+                    this.minimizedItem.addEventListener('click', () => this.restore());
+
+                    // 添加到最小化面板
+                    const panel = document.getElementById('minimizedPanel');
+                    panel.insertBefore(this.minimizedItem, panel.firstChild);
+
+                    // 更新状态
+                    state.minimizedOscilloscopes.push(this);
+                    state.oscilloscopes = state.oscilloscopes.filter(o => o !== this);
+                }
+
+                restore() {
+                    this.isMinimized = false;
+                    this.windowElement.style.display = 'block';
+
+                    if (this.minimizedItem) {
+                        this.minimizedItem.remove();
+                        this.minimizedItem = null;
+                    }
+
+                    // 更新状态
+                    state.oscilloscopes.push(this);
+                    state.minimizedOscilloscopes = state.minimizedOscilloscopes.filter(o => o !== this);
+                }
+
+                close() {
+                    if (this.windowElement) {
+                        this.windowElement.remove();
+                    }
+
+                    if (this.minimizedItem) {
+                        this.minimizedItem.remove();
+                    }
+
+                    // 从所有状态中移除
+                    state.oscilloscopes = state.oscilloscopes.filter(o => o !== this);
+                    state.minimizedOscilloscopes = state.minimizedOscilloscopes.filter(o => o !== this);
+                }
+            }
+
+            //加载目标曲线csv文件代码
+
+            function loadCsvAsCurves(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        try {
+                            const csvText = e.target.result;
+                            const dataMap = parseCsvToMap(csvText);
+
+                            // 转换为对象格式（兼容现有代码）
+                            const dataObj = {};
+                            for (const [key, value] of dataMap.entries()) {
+                                dataObj[key] = value;
+                            }
+
+                            resolve(dataObj);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }.bind(this);
+
+                    reader.onerror = function () {
+                        reject(new Error('无法读取文件'));
+                    };
+
+                    reader.readAsText(file);
+                });
+            }
+
+            // CSV解析函数
+            function parseCsvToMap(csvText) {
+                const lines = csvText.trim().split(/\r\n|\n/);
+                const dataMap = new Map();
+
+                // 检测分隔符（空格）
+                const delimiter = ',';
+
+                // 查找标题行（包含time的行）
+                let headerLineIndex = -1;
+                let headers = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.includes('time') && line.includes(delimiter)) {
+                        headerLineIndex = i;
+                        // 处理带引号的标题
+                        headers = line.split(delimiter)
+                            .map(h => h.trim().replace(/^"|"$/g, ''));
+                        break;
+                    }
+                }
+
+                if (headerLineIndex === -1) {
+                    throw new Error('未找到包含"time"的标题行');
+                }
+
+                // 初始化数据列
+                for (const header of headers) {
+                    if (header) {
+                        dataMap.set(header, []);
+                    }
+                }
+
+                // 处理数据行
+                for (let i = headerLineIndex + 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // 处理带引号的数据字段
+                    const values = line.split(delimiter)
+                        .map(v => v.trim().replace(/^"|"$/g, ''));
+
+                    for (let j = 0; j < headers.length; j++) {
+                        if (j < values.length && headers[j]) {
+                            const value = parseCsvValue(values[j]);
+                            dataMap.get(headers[j]).push(value);
+                        }
+                    }
+                }
+
+                return dataMap;
+            }
+            // CSV值解析
+            function parseCsvValue(valueStr) {
+                if (!valueStr || valueStr === '') return null;
+
+                // 处理科学计数法
+                if (valueStr.includes('E') || valueStr.includes('e')) {
+                    return parseFloat(valueStr);
+                }
+
+                // 尝试转换为数字
+                const num = parseFloat(valueStr);
+                if (!isNaN(num)) return num;
+
+                // 返回原始字符串
+                return valueStr;
+            }
+
+            // 添加函数来更新按钮状态
+            function updateButtonStates() {
+                const hasCanvas = document.querySelector('.canvas-window') !== null;
+                const buttonsToDisable = [
+                    'gridToggle', 'loadBtn', 'textCommandBtn', 'plotBtn',
+                    'copyBtn', 'moveBtn', 'deleteBtn', 'simuSetBtn', 'runBtn', 'tuneBtn'
+                ];
+
+                buttonsToDisable.forEach(id => {
+                    const button = document.getElementById(id);
+                    if (button) {
+                        button.disabled = !hasCanvas;
+                    }
+                });
+
+                // // 特殊处理：仿真设置、Run、Tune按钮
+                // const simButtons = document.querySelectorAll('#toolbar button:not([onclick*="newProject"]):not([onclick*="openFile"])');
+                // simButtons.forEach(button => {
+                //     if (!buttonsToDisable.some(id => button.id === id)) {
+                //         button.disabled = !hasCanvas;
+                //     }
+                // });
+            }
+            // 更新文件名显示的函数
+            function updateFileNameDisplay() {
+                const display = document.getElementById('fileNameDisplay');
+                if (!display) return;
+
+                if (state.fileName) {
+                    display.textContent = state.fileName;
+                    // display.classList.remove('editing');
+                } else {
+                    display.textContent = '未命名';
+                    // display.classList.add('editing');
+                }
+            }
+
+
+
+
+
+
+            // ========== 公共接口 ==========
+            return {
+                //复制功能代码
+                enterCopyMode() {
+                    copyMode = true;
+                    currentMode = "copy"
+                    isRectDragging = false;
+                    isPlacingGroup = false;
+                    if (!copyIndicator) createCopyIndicator();
+                    copyIndicator.style.display = 'block';
+                    // currentCanvas.style.cursor = 'none';
+                },
+                //移动功能代码
+                enterMoveMode() {
+                    moveMode = true;
+                    currentMode = "move"
+                    isRectDragging = false;
+                    isPlacingGroup = false;
+                    if (!moveIndicator) createMoveIndicator();
+                    moveIndicator.style.display = 'block';
+                    // currentCanvas.style.cursor = 'none';
+                },
+                //删除功能代码
+                enterDeleteMode() {
+                    deleteMode = true;
+                    currentMode = "delete"
+                    isRectDragging = false;
+                    isPlacingGroup = false;
+                    if (!deleteIndicator) createDeleteIndicator();
+                    deleteIndicator.style.display = 'block';
+                    // currentCanvas.style.cursor = 'none';
+                },
+
+
+
+
+
+                // 在 CircuitDesigner 模块中添加这个方法
+                checkDuplicateNames: function () {
+                    const nameMap = new Map();
+                    const duplicates = [];
+
+                    // 遍历所有组件
+                    state.components.forEach(comp => {
+                        // 跳过接地组件（GND通常允许同名）
+                        if (comp.type === 'ground') return;
+
+                        if (nameMap.has(comp.name)) {
+                            // 记录重复名称和出现次数
+                            duplicates.push({
+                                name: comp.name,
+                                count: nameMap.get(comp.name).count + 1,
+                                positions: [
+                                    ...nameMap.get(comp.name).positions,
+                                    { x: comp.x, y: comp.y, type: comp.type }
+                                ]
+                            });
+                            nameMap.set(comp.name, {
+                                count: nameMap.get(comp.name).count + 1,
+                                positions: [...nameMap.get(comp.name).positions,
+                                { x: comp.x, y: comp.y, type: comp.type }]
+                            });
+                        } else {
+                            // 首次记录名称
+                            nameMap.set(comp.name, {
+                                count: 1,
+                                positions: [{ x: comp.x, y: comp.y, type: comp.type }]
+                            });
+                        }
+                    });
+
+                    return {
+                        hasDuplicates: duplicates.length > 0,
+                        duplicates: duplicates
+                    };
+                },
+
+
+
+
+
+
+                getCircuitData: () => ({
+                    components: state.components.map(c => ({
+                        type: c.type,
+                        name: c.name,
+                        value: c.value,
+                        position: { x: c.x, y: c.y },
+                        rotation: c.rotation,
+                        pins: ComponentMeta[c.type].pins.map(p => ({
+                            x: c.x + p.x,
+                            y: c.y + p.y
+                        }))
+                    })),
+                    wires: state.wires.map(w => ({
+                        points: w.points,
+                        connections: w.connections
+                    }))
+                }),
+
+                toggleGrid, // 新增方法
+                newProject() {
+                    const existingCanvas = document.querySelector('.canvas-window');
+
+                    if (existingCanvas) {
+                        if (hasContent()) {
+                            const shouldSave = confirm('当前电路图未保存，是否保存？');
+                            if (shouldSave) {
+                                this.saveModel();
+                            }
+                            clearCanvas();
+                        }
+                        // 如果画布存在但无内容，不做任何操作
+                    } else {
+                        // 创建新画布
+                        const canvasWindow = document.createElement('div');
+                        canvasWindow.className = 'canvas-window';
+                        canvasWindow.innerHTML = `<canvas></canvas>`;
+                        document.body.appendChild(canvasWindow);
+                        initCanvas(canvasWindow.querySelector('canvas'));
+                        // 更新按钮状态
+                        updateButtonStates();
+                    }
+                },
+                showParamDialog() {
+                    const dialog = document.getElementById('paramDialog');
+                    dialog.style.display = 'block'
+                    document.getElementById('stopTime').value = state.params.stopTime
+                    document.getElementById('maxStep').value = state.params.maxStep
+                    document.getElementById('saveTime').value = state.params.saveTime
+
+                    // 设置焦点到停止时间输入框,延迟10ms绑定
+                    setTimeout(() => {
+                        const stopInput = document.getElementById('stopTime');
+                        stopInput.focus();
+                        // stopInput.select();
+
+                        // 添加回车键监听
+                        dialog.onkeydown = (e) => {
+                            if (e.key === 'Enter') {
+                                this.saveParams();
+                            }
+                        };
+                    }, 10);
+                    // // 启用拖拽功能
+                    // this.makeDialogDraggable(dialog);
+                },
+                saveComponentProps() {
+                    const comp = selectedComponent;
+                    //保存前先校验一下值是否合法
+                    const type = comp.type;
+                    const name = document.getElementById('compName').value || comp.name;
+                    const value = document.getElementById('compValue').value || comp.value;
+                    //如果有组件名称被修改,更新一下计数器
+                    // if (name !== comp.name) {
+                    // updateCounters(state.components)
+                    // }
+
+
+                    // switch (type) {
+                    //     //因为电压的value有很多种形式，暂时不进行校验
+                    //     // case "voltage":
+                    //     //     if (!isValidVoltageValue(value)) {
+                    //     //         alert("无效电压值！")
+                    //     //         return;
+                    //     //     }
+                    //     //     break;
+                    //     case "resistor":
+                    //         if (!isValidResValue(value)) {
+                    //             alert("无效电阻值!")
+                    //             return
+                    //         }
+                    //         break;
+                    //     case "capacitor":
+                    //         if (!isValidCapValue(value)) {
+                    //             alert("无效电容值!")
+                    //             return
+                    //         }
+                    //         break;
+                    //     case "inductor":
+                    //         if (!isValidIndValue(value)) {
+                    //             alert("无效电感值!")
+                    //             return
+                    //         }
+                    //         break;
+                    // }
+
+                    comp.name = name;
+                    comp.value = value;
+                    redraw();
+                    this.closePropDialog();
+                },
+                closePropDialog() {
+                    const dialog = document.getElementById('propDialog');
+                    dialog.style.display = 'none';
+                    dialog.onkeydown = null; // 移除键盘监听
+                },
+                saveParams() {
+                    const stopTime = document.getElementById('stopTime').value;
+                    const maxStep = document.getElementById('maxStep').value;
+                    const saveTime = document.getElementById('saveTime').value;
+                    if (stopTime === "") {
+                        alert("Lack of simulation time!")
+                        return;
+                    }
+                    if (!isValidTimeValue(stopTime) || !isValidTimeValue(maxStep) || !isValidTimeValue(saveTime)) {
+                        alert("Invalid time value!")
+                        return;
+                    }
+                    state.params.stopTime = stopTime
+                    state.params.maxStep = maxStep
+                    state.params.saveTime = saveTime
+                    this.closeParamDialog();
+                },
+                closeParamDialog() {
+                    document.getElementById('paramDialog').style.display = 'none';
+                    const dialog = document.getElementById('paramDialog');
+                    dialog.onkeydown = null; // 移除键盘监听
+                },
+                openFile() {
+                    document.getElementById('fileInput').click();
+                },
+                // exportASC() {
+                //     // 导出功能实现（预留接口）
+                //     const circuitData = this.getCircuitModel();
+                //     const netlist = generateNetlist(circuitData);
+                //     console.log(netlist);
+
+                // },
+                //运行仿真方法，获取当前电路图数据模型，传递给后台运行仿真
+                run() {
+                    let model = this.getCircuitModel()
+                    if (model.components.length == 0 && model.wires.length == 0) {
+                        alert("No circuit diagram detected!")
+                        return
+                    }
+                    //运行仿真时如果当前fileName还未有值，则让用户输入一下
+                    if (state.fileName === null) {
+                        state.fileName = prompt("Please enter a file name to save.")
+                    }
+                    //如果用户点了取消，则fileName为空，就要退出阻止执行下列操作
+                    if (state.fileName === null) {
+                        return
+                    }
+                    //输入了文件名则更新一下
+                    //更新文件名显示
+                    updateFileNameDisplay()
+                    // 检查重复名称
+                    const duplicateCheck = CircuitDesigner.checkDuplicateNames();
+                    if (duplicateCheck.hasDuplicates) {
+                        // 显示错误信息
+                        let errorMsg = "发现重复组件名称：\n";
+                        duplicateCheck.duplicates.forEach(dup => {
+                            errorMsg += `${dup.name} (${dup.count}处):`;
+                            dup.positions.forEach((pos, i) => {
+                                errorMsg += `\n  ${i + 1}. ${pos.type} 位于 (${Math.round(pos.x)}, ${Math.round(pos.y)})`;
+                            });
+                        });
+                        alert(errorMsg);
+                        return;
+                    }
+
+
+
+                    model.fileName = state.fileName
+                    model.textCommand = state.textCommand
+                    axios.post('http://127.0.0.1:8080/run', model)
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg)
+                                return;
+                            }
+                            //处理返回数据
+                            alert("Run successfully!")
+                            // console.log('请求成功:', res.data.data);
+                            const simulationResponse = res.data.data;
+                            const componentNodes = simulationResponse.componentNodes;
+                            console.log(componentNodes);
+                            state.nodeInfo = componentNodes || {};
+                            redraw(); // 触发重绘
+                            //得到仿真数据
+                            const simulatedRes = simulationResponse.simulatedRes;
+                            console.log(simulatedRes);
+                            state.simulatedData = simulatedRes || {};
+                            // 在run方法中获取数据后添加
+                            this.updatePlotButton();
+                            this.updateLoadButton();
+                        })
+                        .catch(error => {
+                            alert("Running failure")
+                            console.error('Request failed:', error);
+                        });
+
+                },
+                // 添加切换加载/卸载的方法
+                toggleLoadUnload() {
+                    if (state.simulatedData.time) {
+                        this.unloadSimulatedData();
+                    } else {
+                        this.loadSimulatedData();
+                    }
+
+                },
+                // 添加卸载数据的方法
+                unloadSimulatedData() {
+                    // 清除仿真数据
+                    state.simulatedData = {};
+                    state.nodeInfo = {};
+                    // 重绘画布
+                    redraw();
+                    this.updateLoadButton();
+
+                    // alert("仿真数据已卸载");
+                },
+                // 添加更新按钮文本的方法
+                updateLoadButton() {
+                    const btn = document.getElementById('loadBtn');
+                    if (state.simulatedData.time) {
+                        btn.textContent = 'Unload';
+                        // btn.style.backgroundColor = '#e74c3c'; // 红色表示卸载状态
+                    } else {
+                        btn.textContent = 'Load';
+                        // btn.style.backgroundColor = '#3498db'; // 蓝色表示加载状态
+                    }
+                },
+
+
+
+                loadSimulatedData() {
+                    axios.get(`http://127.0.0.1:8080/loadSimulatedData?fileName=${state.fileName}`)
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg)
+                                return;
+                            }
+                            //处理返回数据
+                            console.log("加载成功！");
+
+                            // console.log('请求成功:', res.data.data);
+                            const simulationResponse = res.data.data;
+                            const componentNodes = simulationResponse.componentNodes;
+                            console.log(componentNodes);
+                            state.nodeInfo = componentNodes || {};
+                            redraw(); // 触发重绘
+                            //得到仿真数据
+                            const simulatedRes = simulationResponse.simulatedRes;
+                            console.log(simulatedRes);
+                            state.simulatedData = simulatedRes || {};
+                            this.updateLoadButton();
+                        })
+                        .catch(error => {
+                            alert("Running failure")
+                            console.error('Request failed:', error);
+                        });
+                },
+                // 表格加载csv文件触发方法
+                handleCsvFileSelect(file) {
+                    if (!file) return;
+
+                    loadCsvAsCurves(file)
+                        .then(data => {
+                            // 将数据保存到state中
+                            state.targetCurves = data;
+                            console.log('CSV文件加载成功', data);
+                            // alert('CSV文件加载成功');
+
+                            // 触发重绘或其他操作
+                            // redraw();
+                        })
+                        .catch(error => {
+                            console.error('CSV文件加载失败', error);
+                            alert('CSV file failed to load: ' + error.message);
+                        });
+
+
+
+
+
+
+                },
+
+
+                tune() {
+                    let model = this.getCircuitModel()
+                    if (model.components.length == 0 && model.wires.length == 0) {
+                        alert("No circuit diagram detected!")
+                        return
+                    }
+                    //运行仿真时如果当前fileName还未有值，则让用户输入一下
+                    if (state.fileName === null) {
+                        state.fileName = prompt("Please enter a file name to save.")
+                    }
+                    //如果用户点了取消，则fileName为空，就要退出阻止执行下列操作
+                    if (state.fileName === null) {
+                        return
+                    }
+                    //更新文件名显示
+                    updateFileNameDisplay()
+                    // 检查重复名称
+                    const duplicateCheck = CircuitDesigner.checkDuplicateNames();
+                    if (duplicateCheck.hasDuplicates) {
+                        // 显示错误信息
+                        let errorMsg = "Duplicate component name found.\n";
+                        duplicateCheck.duplicates.forEach(dup => {
+                            errorMsg += `${dup.name} (${dup.count}times):`;
+                            dup.positions.forEach((pos, i) => {
+                                errorMsg += `\n  ${i + 1}. ${pos.type} be located (${Math.round(pos.x)}, ${Math.round(pos.y)})`;
+                            });
+                        });
+                        alert(errorMsg);
+                        return;
+                    }
+
+
+
+                    model.fileName = state.fileName
+                    model.textCommand = state.textCommand
+                    //目标曲线存在逻辑
+                    if (!state.targetCurves) {
+                        document.getElementById('csvFileInput').click();
+                        alert("Please select the target curve file, and then click Tune again.");
+                        // if (!state.targetCurves) {
+                        //     return
+                        // }
+                        return;
+                    }
+
+
+                    axios.post('http://127.0.0.1:8080/tune', { model: model, targetCurves: state.targetCurves })
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg)
+                                return;
+                            }
+                            //处理返回数据
+                            alert("Run successfully! Please check the background file directory!");
+
+                        })
+                        .catch(error => {
+                            alert("Running failure")
+                            console.error('Request failed:', error);
+                        });
+                },
+
+
+
+                getCircuitModel: () => ({
+                    simulationParams: {
+                        stopTime: state.params.stopTime,
+                        maxStep: state.params.maxStep,
+                        saveTime: state.params.saveTime
+                    },
+                    components: state.components.map(c => ({
+                        type: c.type,
+                        name: c.name,
+                        value: c.value,
+                        x: c.x,
+                        y: c.y,
+                        rotation: c.rotation
+                    })),
+                    wires: state.wires.map(w => ({
+                        points: w.points.map(p => ({ x: p.x, y: p.y }))
+                    }))
+                }),
+                //临时方法，用来查看CircuitDesign中的变量状况
+                tempt() {
+                    console.log("打印state状态");
+                    console.log(state);
+                    console.log("打印nodeInfo状态");
+                    console.log(state.nodeInfo);
+
+                },
+                //显示仿真数据功能模块
+                // 添加按钮状态控制
+                updatePlotButton: () => {
+                    const btn = document.getElementById('plotBtn');
+                    btn.disabled = !state.simulatedData.time;
+                },
+
+                // 添加弹窗显示方法
+                showVarSelector: () => {
+                    const vars = Object.keys(state.simulatedData)
+                        .filter(k => k !== 'time');
+
+                    const dialog = document.createElement('div');
+                    dialog.className = 'dialog';
+                    dialog.innerHTML = `
+        <h3>选择要绘制的变量（最多5个）</h3>
+        <div id="varList" style="max-height:200px;overflow:auto;margin:10px 0"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button onclick="CircuitDesigner.closeDialog(false)">取消</button>
+            <button onclick="CircuitDesigner.closeDialog(true)">确定</button>
+        </div>
+    `;
+
+                    const list = dialog.querySelector('#varList');
+                    vars.forEach((v, i) => {
+                        const item = document.createElement('div');
+                        item.style.padding = '5px';
+                        item.innerHTML = `
+            <label style="cursor:pointer">
+                <input type="checkbox" ${i < 5 ? 'checked' : ''} 
+                    value="${v}" style="margin-right:8px">
+                ${v}
+            </label>
+        `;
+                        list.appendChild(item);
+                    });
+
+                    state.plotWindow = dialog;
+                    document.body.appendChild(dialog);
+                },
+
+                closeDialog: (confirm) => {
+                    state.plotWindow.remove();
+                    if (confirm) {
+                        const selected = [...state.plotWindow.querySelectorAll('input:checked')]
+                            .map(i => i.value);
+                        state.selectedVars = selected;
+                        CircuitDesigner.showPlot();
+                    }
+                },
+
+                // 添加以下两个绘图方案
+                showPlot: () => {
+                    // 方案1：使用原生Canvas绘制
+                    const plotWithCanvas = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 800;
+                        canvas.height = 500;
+
+                        const ctx = canvas.getContext('2d');
+                        const data = state.simulatedData;
+                        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+
+                        // 计算坐标范围
+                        const xValues = data.time;
+                        const xRange = [Math.min(...xValues), Math.max(...xValues)];
+                        const yRange = state.selectedVars.reduce((acc, varName) => {
+                            const values = data[varName];
+                            return [
+                                Math.min(acc[0], ...values),
+                                Math.max(acc[1], ...values)
+                            ];
+                        }, [Infinity, -Infinity]);
+
+                        // 绘制坐标轴
+                        ctx.beginPath();
+                        ctx.moveTo(margin.left, margin.top);
+                        ctx.lineTo(margin.left, canvas.height - margin.bottom);
+                        ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+                        ctx.strokeStyle = '#000';
+                        ctx.stroke();
+
+                        // 绘制曲线
+                        state.selectedVars.forEach((varName, i) => {
+                            const values = data[varName];
+                            ctx.beginPath();
+                            values.forEach((y, j) => {
+                                const x = margin.left + (xValues[j] - xRange[0]) / (xRange[1] - xRange[0]) * (canvas.width - margin.left - margin.right);
+                                const yPos = canvas.height - margin.bottom - (y - yRange[0]) / (yRange[1] - yRange[0]) * (canvas.height - margin.top - margin.bottom);
+
+                                if (j === 0) ctx.moveTo(x, yPos);
+                                else ctx.lineTo(x, yPos);
+                            });
+                            ctx.strokeStyle = PLOT_COLORS[i % PLOT_COLORS.length];
+                            ctx.stroke();
+                        });
+
+                        return canvas;
+                    };
+                    // 方案2：使用Chart.js（需要先引入chart.js库）
+                    const plotWithChartJS = () => {
+                        const container = document.createElement('div');
+                        container.innerHTML = '<canvas width="800" height="500"></canvas>';
+                        const ctx = container.querySelector('canvas').getContext('2d');
+
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: state.simulatedData.time,
+                                datasets: state.selectedVars.map((varName, i) => ({
+                                    label: varName,
+                                    data: state.simulatedData[varName],
+                                    borderColor: PLOT_COLORS[i % PLOT_COLORS.length],
+                                    tension: 0.1,
+                                    fill: false
+                                }))
+                            },
+                            options: {
+                                responsive: false,
+                                scales: {
+                                    x: { title: { display: true, text: 'Time (s)' } },
+                                    y: { title: { display: true, text: 'Value' } }
+                                }
+                            }
+                        });
+
+                        return container;
+                    };
+
+                    // 创建绘图对话框
+                    const dialog = document.createElement('div');
+                    dialog.className = 'dialog';
+                    dialog.style.width = '850px';
+                    dialog.innerHTML = `
+        <h3>仿真曲线</h3>
+        <div style="margin:15px 0">
+            <label>渲染方式：
+                <select id="plotMethod">
+                    <option value="canvas">原生Canvas</option>
+                    <option value="chartjs">Chart.js</option>
+                </select>
+            </label>
+        </div>
+        <div id="plotContainer"></div>
+        <div style="margin-top:15px;text-align:right">
+            <button onclick="this.parentElement.parentElement.remove()">关闭</button>
+        </div>
+    `;
+
+                    const container = dialog.querySelector('#plotContainer');
+                    const updatePlot = (method) => {
+                        container.innerHTML = '';
+                        container.appendChild(method === 'canvas' ?
+                            plotWithCanvas() : plotWithChartJS());
+                    };
+
+                    dialog.querySelector('#plotMethod').addEventListener('change', (e) => {
+                        updatePlot(e.target.value);
+                    });
+
+                    document.body.appendChild(dialog);
+                    updatePlot('canvas'); // 默认使用方案1
+                },
+                saveModel() {
+                    let model = this.getCircuitModel()//包含组件、导线、仿真参数
+                    if (model.components.length == 0 && model.wires.length == 0) {
+                        return
+                    }
+                    //保存时如果当前fileName还未有值，则让用户输入一下
+                    if (state.fileName === null) {
+                        state.fileName = prompt("Please enter a file name to save.")
+                    }
+                    //如果用户点了取消，则fileName为空，就要退出阻止执行下列操作
+                    if (state.fileName === null) {
+                        return
+                    }
+                    //更新文件名显示
+                    updateFileNameDisplay()
+
+                    model.fileName = state.fileName
+                    model.textCommand = state.textCommand
+                    axios.post('http://127.0.0.1:8080/saveJson', model)
+                        .then(res => {
+                            if (res.data.code == 1) {
+                                alert("Save successfully!")
+                                // console.log('请求成功:', res.data);
+                            }
+                            else {
+                                alert(res.data.msg);
+                            }
+
+                        })
+                        .catch(error => {
+                            alert("Save failed.")
+                            console.error('Request failed:', error);
+                        });
+
+                },
+                // 文本命令功能
+                showTextCommandDialog: function () {
+                    const dialog = document.getElementById('textCommandDialog');
+                    const input = document.getElementById('textCommandInput');
+
+                    // 加载当前文本命令
+                    input.value = state.textCommand;
+
+                    // 显示对话框并居中
+                    dialog.style.display = 'block';
+                    dialog.style.left = '50%';
+                    dialog.style.top = '50%';
+                    dialog.style.transform = 'translate(-50%, -50%)';
+
+                    // // 启用拖拽功能
+                    // this.makeDialogDraggable(dialog);
+
+                    setTimeout(() => {
+                        input.focus();
+                        // input.select();
+
+                        // 修改回车键处理逻辑
+                        input.onkeydown = (e) => {
+                            // Shift+回车：换行
+                            if (e.key === 'Enter' && e.shiftKey) {
+                                return true; // 允许默认换行行为
+                            }
+
+                            // 纯回车：执行保存操作
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault(); // 阻止默认的换行行为
+                                this.saveTextCommand();
+                                return false;
+                            }
+                        };
+
+                        // // 添加对话框关闭时的清理,为添加esc键退出预留以后
+                        // dialog._closeHandler = () => this.closeTextCommandDialog();
+                    }, 10);
+                },
+
+                closeTextCommandDialog: function () {
+                    const dialog = document.getElementById('textCommandDialog');
+                    dialog.style.display = 'none';
+
+                    const input = document.getElementById('textCommandInput');
+                    input.onkeydown = null; // 移除键盘事件监听
+                },
+
+                saveTextCommand: function () {
+                    const input = document.getElementById('textCommandInput');
+                    state.textCommand = input.value;
+                    this.closeTextCommandDialog();
+
+                    // 提示保存成功
+                    // alert("文本命令已保存！");
+                    console.log("保存的文本命令：", state.textCommand);
+                },
+
+                // 使对话框可拖拽
+                makeDialogDraggable: function (dialog) {
+                    const header = dialog.querySelector('.dialog-header');
+                    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+                    header.onmousedown = dragMouseDown;
+                    //dialog.onmousedown = dragMouseDown;
+
+                    function dragMouseDown(e) {
+                        e = e || window.event;
+                        e.preventDefault();
+                        // 获取鼠标初始位置
+                        pos3 = e.clientX;
+                        pos4 = e.clientY;
+                        document.onmouseup = closeDragElement;
+                        document.onmousemove = elementDrag;
+                    }
+
+                    function elementDrag(e) {
+                        e = e || window.event;
+                        e.preventDefault();
+                        // 计算新位置
+                        pos1 = pos3 - e.clientX;
+                        pos2 = pos4 - e.clientY;
+                        pos3 = e.clientX;
+                        pos4 = e.clientY;
+                        // 设置对话框的新位置
+                        dialog.style.top = (dialog.offsetTop - pos2) + "px";
+                        dialog.style.left = (dialog.offsetLeft - pos1) + "px";
+                    }
+
+                    function closeDragElement() {
+                        document.onmouseup = null;
+                        document.onmousemove = null;
+                    }
+                }
+
+            };
+        })();
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                CircuitDesigner.saveModel()
+            }
+        });
+        //将对话框组件全部启用可拖拽功能
+        let dialog = document.getElementById('textCommandDialog')
+        // 启用拖拽功能
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('propDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('paramDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+    </script>
+</body>
+
+</html>
