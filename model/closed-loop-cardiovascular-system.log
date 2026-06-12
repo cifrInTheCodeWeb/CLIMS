@@ -1,0 +1,16 @@
+LTspice 24.1.9 for Windows
+Circuit: C:\Users\cifer\Desktop\CLIMPS 1.0\model\closed-loop-cardiovascular-system.net
+Start Time: Wed Apr 15 16:39:12 2026
+solver = Normal
+Maximum thread count: 32
+tnom = 27
+temp = 27
+method = trap
+AsciiRawFile = true
+Direct Newton iteration for .op point succeeded.
+Total elapsed time: 1.235 seconds.
+
+Files loaded:
+C:\Users\cifer\Desktop\CLIMPS 1.0\model\closed-loop-cardiovascular-system.net
+C:\Users\cifer\AppData\Local\LTspice\lib\cmp\standard.dio
+
