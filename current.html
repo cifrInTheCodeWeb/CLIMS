@@ -469,6 +469,35 @@
             margin-right: 8px;
             font-size: 16px;
         }
+
+        #saResultTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        #saResultTable th,
+        #saResultTable td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: left;
+        }
+
+        #saResultTable th {
+            background: #f0f2f5;
+        }
+
+        #saResultBody {
+            max-height: 360px;
+            overflow: auto;
+            padding: 10px 15px;
+        }
+
+        #saDialog input[type="number"] {
+            width: 120px;
+            padding: 6px 8px;
+            margin-left: 8px;
+        }
     </style>
     <script src="node_modules/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -484,6 +513,7 @@
         <button disabled id="simuSetBtn" onclick="CircuitDesigner.showParamDialog()">Simulation setting</button>
         <button disabled id="runBtn" title="Running simulation" onclick="CircuitDesigner.run()">Run</button>
         <button disabled id="tuneBtn" title="Adjust model parameters" onclick="CircuitDesigner.tune()">Tune</button>
+        <button disabled id="saBtn" title="Parameter sensitivity analysis" onclick="CircuitDesigner.runSA()">SA</button>
         <button disabled id="loadBtn" title="load Or UnloadSimulatedData"
             onclick="CircuitDesigner.toggleLoadUnload()">Load</button>
         <form id="myForm"><input type="file" id="fileInput" hidden accept=".json">
@@ -573,6 +603,46 @@
         <div class="dialog-footer">
             <button class="save-btn" onclick="CircuitDesigner.saveParams()">save</button>
             <button class="cancel-btn" onclick="CircuitDesigner.closeParamDialog()">cancel</button>
+        </div>
+    </div>
+    <div id="saDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Parameter Sensitivity Analysis</span>
+            <button class="close-btn" onclick="CircuitDesigner.closeSADialog()">×</button>
+        </div>
+        <div class="dialog-body" style="padding: 15px 20px;">
+            <label>Variation ratio:
+                <input type="number" id="saVariationRatio" min="0.01" max="0.99" step="0.05" value="0.3">
+            </label>
+            <p class="hint">Each parameter will be adjusted to (1±ratio) of its baseline value.</p>
+        </div>
+        <div class="dialog-footer">
+            <button class="save-btn" id="saConfirmBtn" onclick="CircuitDesigner.confirmSA()">OK</button>
+            <button class="cancel-btn" onclick="CircuitDesigner.closeSADialog()">Cancel</button>
+        </div>
+    </div>
+    <div id="saResultDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Sensitivity Results</span>
+            <button class="close-btn" onclick="CircuitDesigner.closeSAResultDialog()">×</button>
+        </div>
+        <div id="saResultBody">
+            <table id="saResultTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Baseline</th>
+                        <th>Sensitivity</th>
+                    </tr>
+                </thead>
+                <tbody id="saResultTableBody"></tbody>
+            </table>
+        </div>
+        <div class="dialog-footer">
+            <p class="hint" id="saResultHint" style="margin:0; flex:1;"></p>
+            <button class="save-btn" onclick="CircuitDesigner.closeSAResultDialog()">Close</button>
         </div>
     </div>
     <!-- 文本命令对话框 -->
@@ -3996,7 +4066,7 @@
                 const hasCanvas = document.querySelector('.canvas-window') !== null;
                 const buttonsToDisable = [
                     'gridToggle', 'loadBtn', 'textCommandBtn', 'plotBtn',
-                    'copyBtn', 'moveBtn', 'deleteBtn', 'simuSetBtn', 'runBtn', 'tuneBtn', 'exportCurvesBtn'
+                    'copyBtn', 'moveBtn', 'deleteBtn', 'simuSetBtn', 'runBtn', 'tuneBtn', 'saBtn', 'exportCurvesBtn'
                 ];
 
                 buttonsToDisable.forEach(id => {
@@ -4510,7 +4580,105 @@
                         });
                 },
 
+                runSA() {
+                    let model = this.getCircuitModel()
+                    if (model.components.length == 0 && model.wires.length == 0) {
+                        alert("No circuit diagram detected!")
+                        return
+                    }
+                    if (state.fileName === null) {
+                        state.fileName = prompt("Please enter a file name to save.")
+                    }
+                    if (state.fileName === null) {
+                        return
+                    }
+                    updateFileNameDisplay()
+                    const duplicateCheck = CircuitDesigner.checkDuplicateNames();
+                    if (duplicateCheck.hasDuplicates) {
+                        let errorMsg = "Duplicate component name found.\n";
+                        duplicateCheck.duplicates.forEach(dup => {
+                            errorMsg += `${dup.name} (${dup.count}times):`;
+                            dup.positions.forEach((pos, i) => {
+                                errorMsg += `\n  ${i + 1}. ${pos.type} be located (${Math.round(pos.x)}, ${Math.round(pos.y)})`;
+                            });
+                        });
+                        alert(errorMsg);
+                        return;
+                    }
+                    if (!state.textCommand || !state.textCommand.toLowerCase().includes('save')) {
+                        alert("Please configure output waveforms in Text Command (.t) before running sensitivity analysis.");
+                        return;
+                    }
+                    document.getElementById('saVariationRatio').value = '0.3';
+                    const dialog = document.getElementById('saDialog');
+                    dialog.style.display = 'block';
+                    setTimeout(() => document.getElementById('saVariationRatio').focus(), 10);
+                },
 
+                closeSADialog() {
+                    document.getElementById('saDialog').style.display = 'none';
+                },
+
+                confirmSA() {
+                    const ratioInput = document.getElementById('saVariationRatio');
+                    const ratio = parseFloat(ratioInput.value);
+                    if (isNaN(ratio) || ratio <= 0 || ratio >= 1) {
+                        alert("Variation ratio must be between 0 and 1.");
+                        return;
+                    }
+                    let model = this.getCircuitModel();
+                    model.fileName = state.fileName;
+                    model.textCommand = state.textCommand;
+
+                    const confirmBtn = document.getElementById('saConfirmBtn');
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = 'Analyzing...';
+                    this.closeSADialog();
+
+                    axios.post('http://127.0.0.1:8080/sensitivityAnalysis', {
+                        model: model,
+                        variationRatio: ratio
+                    }, { timeout: 600000 })
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg || "Analysis failed.");
+                                return;
+                            }
+                            this.showSAResult(res.data.data);
+                        })
+                        .catch(error => {
+                            const msg = error.response?.data?.msg;
+                            alert(msg || "Analysis failed. Please check simulation settings and try again.");
+                            console.error('SA request failed:', error);
+                        })
+                        .finally(() => {
+                            confirmBtn.disabled = false;
+                            confirmBtn.textContent = 'OK';
+                        });
+                },
+
+                showSAResult(data) {
+                    const tbody = document.getElementById('saResultTableBody');
+                    tbody.innerHTML = '';
+                    const results = data.results || [];
+                    results.forEach((row, i) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${i + 1}</td>
+                            <td>${row.parameterName}</td>
+                            <td>${row.parameterType}</td>
+                            <td>${row.baselineValue != null ? row.baselineValue.toPrecision(4) : ''}</td>
+                            <td>${row.sensitivity != null ? row.sensitivity.toPrecision(4) : ''}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                    document.getElementById('saResultHint').textContent =
+                        `Analysis complete. Detailed report saved as ${data.csvPath || data.fileName}.csv`;
+                    document.getElementById('saResultDialog').style.display = 'block';
+                },
+
+                closeSAResultDialog() {
+                    document.getElementById('saResultDialog').style.display = 'none';
+                },
 
                 getCircuitModel: () => ({
                     simulationParams: {
@@ -4847,6 +5015,10 @@
         dialog = document.getElementById('propDialog')
         CircuitDesigner.makeDialogDraggable(dialog);
         dialog = document.getElementById('paramDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('saDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('saResultDialog')
         CircuitDesigner.makeDialogDraggable(dialog);
     </script>
 </body>
