@@ -326,6 +326,11 @@
             opacity: 0.9;
         }
 
+        #toolbar button.btn-busy {
+            opacity: 0.75;
+            cursor: wait;
+        }
+
         /* 电流流向样式 */
         .current-arrow-cursor {
             position: fixed;
@@ -498,6 +503,183 @@
             padding: 6px 8px;
             margin-left: 8px;
         }
+
+        #tuneCsvFileChip {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #f0f2f5;
+            border-radius: 4px;
+            max-width: 100%;
+        }
+
+        #tuneCsvFileName {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .tune-file-remove {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .tune-file-remove:hover {
+            color: #e74c3c;
+        }
+
+        #tuneCsvError {
+            color: #e74c3c;
+            margin-top: 8px;
+        }
+
+        .tune-progress-bar-wrap {
+            width: 100%;
+            height: 18px;
+            background: #e9ecef;
+            border-radius: 9px;
+            overflow: hidden;
+            margin: 12px 0 8px;
+        }
+
+        #tuneProgressBar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.4s ease;
+        }
+
+        #tuneProgressPercent {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .tune-viz-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tune-viz-option input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        #tuneProgressDialog {
+            width: 720px;
+            max-width: 92vw;
+        }
+
+        #tuneVizHistoryDialog {
+            width: 920px;
+            max-width: 95vw;
+        }
+
+        .tune-viz-section {
+            margin-top: 14px;
+            border-top: 1px solid #e9ecef;
+            padding-top: 10px;
+        }
+
+        .tune-viz-toggle {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            margin-bottom: 8px;
+        }
+
+        .tune-viz-body {
+            padding-top: 4px;
+        }
+
+        .tune-viz-body.collapsed {
+            display: none;
+        }
+
+        .tune-viz-chart-wrap {
+            position: relative;
+            height: 240px;
+            margin-top: 8px;
+        }
+
+        .tune-viz-chart-wrap-lg {
+            height: 360px;
+        }
+
+        .tune-viz-trend-wrap {
+            height: 180px;
+        }
+
+        .tune-viz-controls label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .tune-viz-controls input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .tune-viz-hint {
+            margin: 6px 0 0;
+            font-size: 12px;
+        }
+
+        #tuneVizHistoryDialog .dialog-body {
+            padding: 15px 20px;
+        }
+
+        #tuneVizHistoryDialog .dialog-header .tune-viz-header-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tune-viz-subtitle {
+            font-size: 12px;
+            font-weight: normal;
+            opacity: 0.92;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tune-viz-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
     </style>
     <script src="node_modules/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -513,13 +695,14 @@
         <button disabled id="simuSetBtn" onclick="CircuitDesigner.showParamDialog()">Simulation setting</button>
         <button disabled id="runBtn" title="Running simulation" onclick="CircuitDesigner.run()">Run</button>
         <button disabled id="tuneBtn" title="Adjust model parameters" onclick="CircuitDesigner.tune()">Tune</button>
+        <button id="distVizBtn" title="Open parameter distribution from saved file"
+            onclick="CircuitDesigner.openParamDistributionFile()">Dist</button>
         <button disabled id="saBtn" title="Parameter sensitivity analysis" onclick="CircuitDesigner.runSA()">SA</button>
         <button disabled id="loadBtn" title="load Or UnloadSimulatedData"
             onclick="CircuitDesigner.toggleLoadUnload()">Load</button>
-        <form id="myForm"><input type="file" id="fileInput" hidden accept=".json">
-            <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
-                onchange="CircuitDesigner.handleCsvFileSelect(this.files[0])">
-        </form>
+        <form id="myForm"><input type="file" id="fileInput" hidden accept=".json"></form>
+        <input type="file" id="paramDistFileInput" accept=".json,application/json" style="display:none"
+            onchange="CircuitDesigner.handleParamDistributionFileSelect(this)">
         <button disabled id="textCommandBtn" title="Text command" onclick="CircuitDesigner.showTextCommandDialog()">
             <span>.t</span>
         </button>
@@ -603,6 +786,100 @@
         <div class="dialog-footer">
             <button class="save-btn" onclick="CircuitDesigner.saveParams()">save</button>
             <button class="cancel-btn" onclick="CircuitDesigner.closeParamDialog()">cancel</button>
+        </div>
+    </div>
+    <div id="tuneDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Tune — Target Curves</span>
+            <button class="close-btn" onclick="CircuitDesigner.closeTuneDialog()">×</button>
+        </div>
+        <div class="dialog-body" style="padding: 15px 20px;">
+            <p class="hint">Load a CSV file with target waveforms (must include a time column).</p>
+            <button type="button" id="tuneCsvUploadBtn" class="save-btn"
+                onclick="CircuitDesigner.triggerTuneCsvUpload()">Upload CSV</button>
+            <input type="file" id="tuneCsvFileInput" accept=".csv" style="display:none"
+                onchange="CircuitDesigner.handleTuneCsvFileSelect(this)">
+            <div id="tuneCsvFileChip">
+                <span id="tuneCsvFileName"></span>
+                <button type="button" class="tune-file-remove" title="Remove"
+                    onclick="CircuitDesigner.removeTargetCurves()">×</button>
+            </div>
+            <p class="hint" id="tuneCurveColumns"></p>
+            <p class="hint" id="tuneCsvError"></p>
+            <label class="tune-viz-option">
+                <input type="checkbox" id="tuneRecordVizCheckbox">
+                Record parameter distribution
+            </label>
+        </div>
+        <div class="dialog-footer">
+            <button class="save-btn" id="tuneConfirmBtn" disabled onclick="CircuitDesigner.confirmTune()">Start
+                tuning</button>
+            <button class="cancel-btn" onclick="CircuitDesigner.closeTuneDialog()">Cancel</button>
+        </div>
+    </div>
+    <div id="tuneProgressDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <span>Tuning in progress</span>
+            <button class="close-btn" id="tuneProgressCloseBtn" onclick="CircuitDesigner.requestCancelTune()">×</button>
+        </div>
+        <div class="dialog-body" style="padding: 15px 20px;">
+            <p id="tuneProgressMessage" class="hint" style="margin-top:0;">Starting...</p>
+            <div class="tune-progress-bar-wrap">
+                <div id="tuneProgressBar"></div>
+            </div>
+            <p id="tuneProgressPercent">0%</p>
+            <div id="tuneVizLiveSection" class="tune-viz-section" style="display:none;">
+                <button type="button" class="tune-viz-toggle" id="tuneVizLiveToggle"
+                    onclick="CircuitDesigner.toggleTuneVizLive()">Parameter distribution ▾</button>
+                <div id="tuneVizLiveBody" class="tune-viz-body">
+                    <div class="tune-viz-controls">
+                        <label>Parameter:
+                            <select id="tuneVizLiveParamSelect"
+                                onchange="CircuitDesigner.onTuneVizLiveParamChange()"></select>
+                        </label>
+                    </div>
+                    <div class="tune-viz-chart-wrap">
+                        <canvas id="tuneVizLiveChart"></canvas>
+                    </div>
+                    <p class="hint tune-viz-hint">Up to 5 recent generations (including initial population).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="tuneVizHistoryDialog" class="dialog" style="display:none;">
+        <div class="dialog-header">
+            <div class="tune-viz-header-text">
+                <span id="tuneVizHistoryTitle">Parameter distribution</span>
+                <div id="tuneVizHistorySubtitle" class="tune-viz-subtitle" style="display:none;"></div>
+            </div>
+            <button class="close-btn" onclick="CircuitDesigner.closeTuneVizHistoryDialog()">×</button>
+        </div>
+        <div class="dialog-body">
+            <div class="tune-viz-controls">
+                <label>Parameter:
+                    <select id="tuneVizHistoryParamSelect"
+                        onchange="CircuitDesigner.onTuneVizHistoryParamChange()"></select>
+                </label>
+                <label class="tune-viz-trend-toggle">
+                    <input type="checkbox" id="tuneVizShowSpreadTrend"
+                        onchange="CircuitDesigner.onTuneVizShowSpreadTrendChange()">
+                    Show spread trends
+                </label>
+            </div>
+            <div class="tune-viz-chart-wrap tune-viz-chart-wrap-lg">
+                <canvas id="tuneVizHistoryChart"></canvas>
+            </div>
+            <div id="tuneVizTrendChartsWrap" style="display:none;">
+                <div class="tune-viz-chart-wrap tune-viz-trend-wrap">
+                    <canvas id="tuneVizIqrChart"></canvas>
+                </div>
+                <div class="tune-viz-chart-wrap tune-viz-trend-wrap">
+                    <canvas id="tuneVizVarianceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="dialog-footer">
+            <button class="cancel-btn" onclick="CircuitDesigner.closeTuneVizHistoryDialog()">Close</button>
         </div>
     </div>
     <div id="saDialog" class="dialog" style="display:none;">
@@ -811,6 +1088,20 @@
                 minimizedOscilloscopes: [], // 存储最小化的示波器实例
                 currentZIndex: 1000, // 初始 z-index 值
                 targetCurves: null,
+                targetCurvesFileName: null,
+                activeBackendTask: null,
+                tuneJobId: null,
+                tunePollTimer: null,
+                tuneCancelRequested: false,
+                recordParamDistribution: false,
+                tuneVizLiveSummary: null,
+                tuneVizHistoryData: null,
+                tuneVizLiveChart: null,
+                tuneVizHistoryChart: null,
+                tuneVizIqrChart: null,
+                tuneVizVarianceChart: null,
+                tuneVizLiveExpanded: true,
+                tuneVizHistorySourceFile: null,
             };
 
             function drawWireEndpoints(wire) {
@@ -3176,7 +3467,21 @@
                     oscilloscopes: [], // 存储所有示波器实例
                     minimizedOscilloscopes: [], // 存储最小化的示波器实例
                     currentZIndex: 1000, // 初始 z-index 值
-                    targetCurves: null
+                    targetCurves: null,
+                    targetCurvesFileName: null,
+                    activeBackendTask: null,
+                    tuneJobId: null,
+                    tunePollTimer: null,
+                    tuneCancelRequested: false,
+                    recordParamDistribution: false,
+                    tuneVizLiveSummary: null,
+                    tuneVizHistoryData: null,
+                    tuneVizLiveChart: null,
+                    tuneVizHistoryChart: null,
+                    tuneVizIqrChart: null,
+                    tuneVizVarianceChart: null,
+                    tuneVizLiveExpanded: true,
+                    tuneVizHistorySourceFile: null,
                 };
                 //更新文件名显示
                 updateFileNameDisplay()
@@ -4061,12 +4366,68 @@
                 return valueStr;
             }
 
+            const BACKEND_TASK_KEYS = ['run', 'tune', 'sa'];
+            const TUNE_JOB_STORAGE_KEY = 'climps_tune_job_id';
+            const TUNE_RECORD_VIZ_STORAGE_KEY = 'climps_tune_record_viz';
+            const TUNE_POLL_INTERVAL_MS = 30000;
+            const BACKEND_TASK_BUTTONS = {
+                run: { id: 'runBtn', idle: 'Run', busy: 'Running...' },
+                tune: { id: 'tuneBtn', idle: 'Tune', busy: 'Tuning...' },
+                sa: { id: 'saBtn', idle: 'SA', busy: 'SAnalyzing...' },
+            };
+
+            function applyBackendTaskUI() {
+                const hasCanvas = document.querySelector('.canvas-window') !== null;
+                const active = state.activeBackendTask;
+                BACKEND_TASK_KEYS.forEach(key => {
+                    const cfg = BACKEND_TASK_BUTTONS[key];
+                    const btn = document.getElementById(cfg.id);
+                    if (!btn) return;
+                    if (active) {
+                        btn.disabled = true;
+                        btn.textContent = key === active ? cfg.busy : cfg.idle;
+                        btn.classList.toggle('btn-busy', key === active);
+                    } else {
+                        btn.disabled = !hasCanvas;
+                        btn.textContent = cfg.idle;
+                        btn.classList.remove('btn-busy');
+                    }
+                });
+            }
+
+            function beginBackendTask(taskKey) {
+                if (state.activeBackendTask) return false;
+                state.activeBackendTask = taskKey;
+                applyBackendTaskUI();
+                return true;
+            }
+
+            function endBackendTask(taskKey) {
+                if (state.activeBackendTask !== taskKey) return;
+                state.activeBackendTask = null;
+                applyBackendTaskUI();
+            }
+
+            function stopTunePolling() {
+                if (state.tunePollTimer) {
+                    clearInterval(state.tunePollTimer);
+                    state.tunePollTimer = null;
+                }
+            }
+
+            function clearTuneJobSession() {
+                sessionStorage.removeItem(TUNE_JOB_STORAGE_KEY);
+                sessionStorage.removeItem(TUNE_RECORD_VIZ_STORAGE_KEY);
+                state.tuneJobId = null;
+                state.tuneCancelRequested = false;
+            }
+
             // 添加函数来更新按钮状态
             function updateButtonStates() {
                 const hasCanvas = document.querySelector('.canvas-window') !== null;
                 const buttonsToDisable = [
                     'gridToggle', 'loadBtn', 'textCommandBtn', 'plotBtn',
-                    'copyBtn', 'moveBtn', 'deleteBtn', 'simuSetBtn', 'runBtn', 'tuneBtn', 'saBtn', 'exportCurvesBtn'
+                    'copyBtn', 'moveBtn', 'deleteBtn', 'simuSetBtn', 'exportCurvesBtn'
                 ];
 
                 buttonsToDisable.forEach(id => {
@@ -4075,6 +4436,8 @@
                         button.disabled = !hasCanvas;
                     }
                 });
+
+                applyBackendTaskUI();
 
                 // // 特殊处理：仿真设置、Run、Tune按钮
                 // const simButtons = document.querySelectorAll('#toolbar button:not([onclick*="newProject"]):not([onclick*="openFile"])');
@@ -4369,6 +4732,7 @@
 
                     model.fileName = state.fileName
                     model.textCommand = state.textCommand
+                    if (!beginBackendTask('run')) return;
                     axios.post('http://127.0.0.1:8080/run', model)
                         .then(res => {
                             if (res.data.code == 0) {
@@ -4394,7 +4758,8 @@
                         .catch(error => {
                             alert("Running failure")
                             console.error('Request failed:', error);
-                        });
+                        })
+                        .finally(() => endBackendTask('run'));
 
                 },
                 // 添加切换加载/卸载的方法
@@ -4491,32 +4856,68 @@
 
 
 
-                // 表格加载csv文件触发方法
-                handleCsvFileSelect(file) {
-                    if (!file) return;
-
-                    loadCsvAsCurves(file)
-                        .then(data => {
-                            // 将数据保存到state中
-                            state.targetCurves = data;
-                            console.log('CSV文件加载成功', data);
-                            // alert('CSV文件加载成功');
-
-                            // 触发重绘或其他操作
-                            // redraw();
-                        })
-                        .catch(error => {
-                            console.error('CSV文件加载失败', error);
-                            alert('CSV file failed to load: ' + error.message);
-                        });
-
-
-
-
-
-
+                // Tune 弹窗：加载 / 移除目标曲线 CSV
+                updateTuneDialogUI() {
+                    const hasCurves = !!state.targetCurves;
+                    const uploadBtn = document.getElementById('tuneCsvUploadBtn');
+                    const fileChip = document.getElementById('tuneCsvFileChip');
+                    const confirmBtn = document.getElementById('tuneConfirmBtn');
+                    if (uploadBtn) uploadBtn.style.display = hasCurves ? 'none' : '';
+                    if (fileChip) fileChip.style.display = hasCurves ? 'flex' : 'none';
+                    if (confirmBtn) {
+                        confirmBtn.disabled = !hasCurves || !!state.activeBackendTask;
+                    }
+                    if (hasCurves) {
+                        document.getElementById('tuneCsvFileName').textContent =
+                            state.targetCurvesFileName || 'target.csv';
+                        const cols = Object.keys(state.targetCurves).filter(k => k !== 'time').sort();
+                        document.getElementById('tuneCurveColumns').textContent =
+                            cols.length ? `Columns (${cols.length}): ${cols.join(', ')}` : '';
+                    } else {
+                        document.getElementById('tuneCurveColumns').textContent = '';
+                    }
                 },
 
+                triggerTuneCsvUpload() {
+                    document.getElementById('tuneCsvFileInput').click();
+                },
+
+                handleTuneCsvFileSelect(input) {
+                    const file = input.files[0];
+                    if (!file) return;
+                    const errorEl = document.getElementById('tuneCsvError');
+                    loadCsvAsCurves(file)
+                        .then(data => {
+                            state.targetCurves = data;
+                            state.targetCurvesFileName = file.name;
+                            if (errorEl) errorEl.textContent = '';
+                            this.updateTuneDialogUI();
+                            console.log('Target curves loaded:', file.name, data);
+                        })
+                        .catch(error => {
+                            console.error('CSV load failed', error);
+                            state.targetCurves = null;
+                            state.targetCurvesFileName = null;
+                            if (errorEl) errorEl.textContent = error.message || 'Failed to load CSV file.';
+                            this.updateTuneDialogUI();
+                            alert('CSV file failed to load: ' + error.message);
+                        })
+                        .finally(() => {
+                            input.value = '';
+                        });
+                },
+
+                removeTargetCurves() {
+                    state.targetCurves = null;
+                    state.targetCurvesFileName = null;
+                    const errorEl = document.getElementById('tuneCsvError');
+                    if (errorEl) errorEl.textContent = '';
+                    this.updateTuneDialogUI();
+                },
+
+                closeTuneDialog() {
+                    document.getElementById('tuneDialog').style.display = 'none';
+                },
 
                 tune() {
                     let model = this.getCircuitModel()
@@ -4524,20 +4925,26 @@
                         alert("No circuit diagram detected!")
                         return
                     }
-                    //运行仿真时如果当前fileName还未有值，则让用户输入一下
+                    if (state.activeBackendTask) return;
+                    const errorEl = document.getElementById('tuneCsvError');
+                    if (errorEl) errorEl.textContent = '';
+                    this.updateTuneDialogUI();
+                    document.getElementById('tuneDialog').style.display = 'block';
+                },
+
+                confirmTune() {
+                    if (!state.targetCurves) return;
+
+                    let model = this.getCircuitModel()
                     if (state.fileName === null) {
                         state.fileName = prompt("Please enter a file name to save.")
                     }
-                    //如果用户点了取消，则fileName为空，就要退出阻止执行下列操作
                     if (state.fileName === null) {
                         return
                     }
-                    //更新文件名显示
                     updateFileNameDisplay()
-                    // 检查重复名称
                     const duplicateCheck = CircuitDesigner.checkDuplicateNames();
                     if (duplicateCheck.hasDuplicates) {
-                        // 显示错误信息
                         let errorMsg = "Duplicate component name found.\n";
                         duplicateCheck.duplicates.forEach(dup => {
                             errorMsg += `${dup.name} (${dup.count}times):`;
@@ -4549,35 +4956,732 @@
                         return;
                     }
 
-
-
                     model.fileName = state.fileName
                     model.textCommand = state.textCommand
-                    //目标曲线存在逻辑
-                    if (!state.targetCurves) {
-                        document.getElementById('csvFileInput').click();
-                        alert("Please select the target curve file, and then click Tune again.");
-                        // if (!state.targetCurves) {
-                        //     return
-                        // }
+                    state.recordParamDistribution = !!document.getElementById('tuneRecordVizCheckbox')?.checked;
+                    sessionStorage.setItem(TUNE_RECORD_VIZ_STORAGE_KEY,
+                        state.recordParamDistribution ? '1' : '0');
+
+                    const confirmBtn = document.getElementById('tuneConfirmBtn');
+                    this.closeTuneDialog();
+                    if (confirmBtn) confirmBtn.disabled = true;
+
+                    axios.post('http://127.0.0.1:8080/tune/start', {
+                        model: model,
+                        targetCurves: state.targetCurves,
+                        recordParamDistribution: state.recordParamDistribution
+                    })
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg || "Failed to start tuning.");
+                                return;
+                            }
+                            const data = res.data.data;
+                            if (!data || !data.jobId) {
+                                alert("Failed to start tuning.");
+                                return;
+                            }
+                            this.beginTuneJobTracking(data.jobId);
+                        })
+                        .catch(error => {
+                            const msg = error.response?.data?.msg;
+                            alert(msg || "Failed to start tuning.");
+                            console.error('Tune start failed:', error);
+                        })
+                        .finally(() => {
+                            if (confirmBtn) confirmBtn.disabled = !state.targetCurves;
+                        });
+                },
+
+                beginTuneJobTracking(jobId) {
+                    stopTunePolling();
+                    state.tuneJobId = jobId;
+                    state.tuneCancelRequested = false;
+                    state.tuneVizLiveSummary = null;
+                    this.destroyTuneVizCharts();
+                    this.hideTuneVizLive();
+                    const storedRecord = sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY);
+                    if (storedRecord != null) {
+                        state.recordParamDistribution = storedRecord === '1';
+                    }
+                    sessionStorage.setItem(TUNE_JOB_STORAGE_KEY, jobId);
+                    if (!beginBackendTask('tune')) return;
+                    this.showTuneProgressDialog();
+                    this.pollTuneJobStatus(jobId);
+                    state.tunePollTimer = setInterval(() => {
+                        this.pollTuneJobStatus(jobId);
+                    }, TUNE_POLL_INTERVAL_MS);
+                },
+
+                showTuneProgressDialog() {
+                    document.getElementById('tuneProgressDialog').style.display = 'block';
+                    this.updateTuneProgressUI({
+                        phase: 'INIT',
+                        currentGeneration: 0,
+                        maxGeneration: 0,
+                        percent: 0,
+                        message: 'Starting tuning...'
+                    });
+                },
+
+                closeTuneProgressDialog() {
+                    document.getElementById('tuneProgressDialog').style.display = 'none';
+                },
+
+                updateTuneProgressUI(status) {
+                    if (status.cancelRequested) {
+                        state.tuneCancelRequested = true;
+                    }
+                    const messageEl = document.getElementById('tuneProgressMessage');
+                    const barEl = document.getElementById('tuneProgressBar');
+                    const percentEl = document.getElementById('tuneProgressPercent');
+                    const percent = status.percent != null ? status.percent : 0;
+                    let message = status.message || 'Tuning...';
+                    if (status.phase === 'INIT') {
+                        message = status.message || 'Initializing population...';
+                    } else if (status.phase === 'EVOLVING' && status.maxGeneration) {
+                        message = status.message || `Generation ${status.currentGeneration} / ${status.maxGeneration}`;
+                    } else if (status.phase === 'SAVING') {
+                        message = status.message || 'Saving tuned models...';
+                    }
+                    if (messageEl) messageEl.textContent = message;
+                    if (barEl) barEl.style.width = Math.min(percent, 100) + '%';
+                    if (percentEl) percentEl.textContent = Math.min(percent, 100) + '%';
+                },
+
+                pollTuneJobStatus(jobId) {
+                    axios.get(`http://127.0.0.1:8080/tune/status/${encodeURIComponent(jobId)}`)
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                this.handleTuneJobTerminal(null, res.data.msg);
+                                return;
+                            }
+                            const status = res.data.data;
+                            if (!status) return;
+                            this.updateTuneProgressUI(status);
+                            if (status.vizSummary) {
+                                this.updateTuneVizLive(status.vizSummary);
+                            } else if (!state.recordParamDistribution) {
+                                this.hideTuneVizLive();
+                            }
+                            if (status.status !== 'RUNNING') {
+                                this.handleTuneJobTerminal(status);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Tune status poll failed:', error);
+                        });
+                },
+
+                handleTuneJobTerminal(status, errorMsg) {
+                    const jobId = state.tuneJobId || sessionStorage.getItem(TUNE_JOB_STORAGE_KEY);
+                    const recordViz = state.recordParamDistribution
+                        || sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY) === '1';
+                    stopTunePolling();
+                    clearTuneJobSession();
+                    endBackendTask('tune');
+                    this.closeTuneProgressDialog();
+                    this.hideTuneVizLive();
+
+                    if (!status) {
+                        alert(errorMsg || 'Tuning status unavailable.');
                         return;
                     }
 
+                    const showFinishAlert = () => {
+                        if (status.status === 'COMPLETED') {
+                            const folder = status.outputFolder ? `\nFolder: ${status.outputFolder}` : '';
+                            alert((status.message || 'Tuning completed successfully.') + folder);
+                            return;
+                        }
+                        if (status.status === 'CANCELLED') {
+                            alert(status.message || 'Tuning was cancelled.');
+                            return;
+                        }
+                        if (status.status === 'FAILED') {
+                            alert(status.message || 'Tuning failed.');
+                        }
+                    };
 
-                    axios.post('http://127.0.0.1:8080/tune', { model: model, targetCurves: state.targetCurves })
+                    if (recordViz && jobId) {
+                        this.fetchTuneVizHistory(jobId)
+                            .then(data => {
+                                if (data) {
+                                    const source = status.outputFolder
+                                        ? `${status.outputFolder}/param-distribution.json`
+                                        : null;
+                                    this.showTuneVizHistoryDialog(data, { sourceFileName: source });
+                                }
+                            })
+                            .catch(err => console.warn('Tune viz history unavailable:', err))
+                            .finally(showFinishAlert);
+                        return;
+                    }
+                    showFinishAlert();
+                },
+
+                requestCancelTune() {
+                    const jobId = state.tuneJobId || sessionStorage.getItem(TUNE_JOB_STORAGE_KEY);
+                    if (!jobId) {
+                        this.closeTuneProgressDialog();
+                        return;
+                    }
+                    if (state.tuneCancelRequested) {
+                        alert('Shutting down resources. Please wait for the current generation to finish.');
+                        return;
+                    }
+                    if (!confirm('Stop this tuning run? If at least 20 generations have finished, the best models found so far will be saved.')) {
+                        return;
+                    }
+                    state.tuneCancelRequested = true;
+                    axios.post(`http://127.0.0.1:8080/tune/cancel/${encodeURIComponent(jobId)}`)
                         .then(res => {
                             if (res.data.code == 0) {
-                                alert(res.data.msg)
+                                state.tuneCancelRequested = false;
+                                alert(res.data.msg || 'Failed to cancel tuning.');
                                 return;
                             }
-                            //处理返回数据
-                            alert("Run successfully! Please check the background file directory!");
-
+                            document.getElementById('tuneProgressMessage').textContent =
+                                'Cancellation requested. Finishing current generation...';
                         })
                         .catch(error => {
-                            alert("Running failure")
-                            console.error('Request failed:', error);
+                            state.tuneCancelRequested = false;
+                            console.error('Tune cancel failed:', error);
+                            alert('Failed to cancel tuning.');
                         });
+                },
+
+                destroyTuneVizCharts() {
+                    ['tuneVizLiveChart', 'tuneVizHistoryChart', 'tuneVizIqrChart', 'tuneVizVarianceChart'].forEach(key => {
+                        if (state[key]) {
+                            state[key].destroy();
+                            state[key] = null;
+                        }
+                    });
+                },
+
+                hideTuneVizLive() {
+                    const section = document.getElementById('tuneVizLiveSection');
+                    if (section) section.style.display = 'none';
+                },
+
+                toggleTuneVizLive() {
+                    state.tuneVizLiveExpanded = !state.tuneVizLiveExpanded;
+                    const body = document.getElementById('tuneVizLiveBody');
+                    const toggle = document.getElementById('tuneVizLiveToggle');
+                    if (body) body.classList.toggle('collapsed', !state.tuneVizLiveExpanded);
+                    if (toggle) {
+                        toggle.textContent = state.tuneVizLiveExpanded
+                            ? 'Parameter distribution ▾'
+                            : 'Parameter distribution ▸';
+                    }
+                },
+
+                buildTuneDistributionDatasets(generations, statsMap) {
+                    const statFor = (g) => statsMap[g] ?? statsMap[String(g)];
+                    const labels = generations.map(g => 'Gen ' + g);
+                    return {
+                        labels,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Range',
+                                data: generations.map(g => {
+                                    const s = statFor(g);
+                                    return s ? [s.min, s.max] : null;
+                                }),
+                                backgroundColor: 'rgba(102, 126, 234, 0.12)',
+                                borderColor: 'rgba(102, 126, 234, 0.35)',
+                                borderWidth: 1,
+                                maxBarThickness: 14,
+                                order: 3,
+                            },
+                            {
+                                type: 'bar',
+                                label: 'IQR',
+                                data: generations.map(g => {
+                                    const s = statFor(g);
+                                    return s ? [s.q1, s.q3] : null;
+                                }),
+                                backgroundColor: 'rgba(102, 126, 234, 0.45)',
+                                borderColor: 'rgba(102, 126, 234, 0.75)',
+                                borderWidth: 1,
+                                maxBarThickness: 10,
+                                order: 2,
+                            },
+                            {
+                                type: 'line',
+                                label: 'Median',
+                                data: generations.map(g => statFor(g)?.median ?? null),
+                                borderColor: '#667eea',
+                                backgroundColor: '#667eea',
+                                borderWidth: 2,
+                                pointRadius: 3,
+                                tension: 0.1,
+                                order: 1,
+                            },
+                            {
+                                type: 'line',
+                                label: 'Best',
+                                data: generations.map(g => statFor(g)?.best ?? null),
+                                borderColor: '#e74c3c',
+                                backgroundColor: '#e74c3c',
+                                borderDash: [5, 4],
+                                pointRadius: 3,
+                                tension: 0.1,
+                                order: 0,
+                            },
+                        ],
+                    };
+                },
+
+                buildTuneVizCategoryXScale(generationCount) {
+                    const shouldRotate = generationCount > 24;
+                    return {
+                        offset: false,
+                        grid: {
+                            offset: false,
+                            drawOnChartArea: true,
+                        },
+                        ticks: {
+                            maxRotation: shouldRotate ? 45 : 0,
+                            minRotation: shouldRotate ? 45 : 0,
+                            autoSkip: true,
+                            maxTicksLimit: generationCount > 60 ? 18 : generationCount > 30 ? 15 : undefined,
+                        },
+                    };
+                },
+
+                buildTuneVizYAxisOptions(title, compactTicks) {
+                    const yScale = {
+                        title: { display: true, text: title },
+                        ticks: {
+                            padding: 6,
+                        },
+                        afterFit: (scale) => {
+                            scale.width = 72;
+                        },
+                    };
+                    if (compactTicks) {
+                        yScale.ticks.callback = (v) => this.formatTuneVizAxisValue(v);
+                    }
+                    return yScale;
+                },
+
+                buildTuneVizChartLayout(generationCount) {
+                    return {
+                        padding: {
+                            left: 2,
+                            right: 8,
+                            bottom: generationCount > 24 ? 4 : 0,
+                        },
+                    };
+                },
+
+                renderTuneDistributionChart(canvasId, chartStateKey, generations, statsMap) {
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas || !generations || generations.length === 0) return;
+                    if (state[chartStateKey]) {
+                        state[chartStateKey].destroy();
+                        state[chartStateKey] = null;
+                    }
+                    const { labels, datasets } = this.buildTuneDistributionDatasets(generations, statsMap);
+                    state[chartStateKey] = new Chart(canvas.getContext('2d'), {
+                        type: 'bar',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            layout: this.buildTuneVizChartLayout(generations.length),
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: { boxWidth: 12, font: { size: 10 } },
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (items) => {
+                                            if (!items.length) return '';
+                                            return labels[items[0].dataIndex] || ('Gen ' + generations[items[0].dataIndex]);
+                                        },
+                                        label: (ctx) => {
+                                            const s = statsMap[generations[ctx.dataIndex]]
+                                                ?? statsMap[String(generations[ctx.dataIndex])];
+                                            if (!s) return ctx.dataset.label;
+                                            if (ctx.dataset.label === 'IQR') {
+                                                return `IQR: ${s.q1.toPrecision(4)} – ${s.q3.toPrecision(4)}`;
+                                            }
+                                            if (ctx.dataset.label === 'Range') {
+                                                return `Range: ${s.min.toPrecision(4)} – ${s.max.toPrecision(4)}`;
+                                            }
+                                            if (ctx.dataset.label === 'Median') {
+                                                return `Median: ${s.median.toPrecision(4)}`;
+                                            }
+                                            if (ctx.dataset.label === 'Best') {
+                                                return `Best: ${s.best.toPrecision(4)}`;
+                                            }
+                                            if (typeof ctx.parsed.y === 'number') {
+                                                return `${ctx.dataset.label}: ${ctx.parsed.y.toPrecision(4)}`;
+                                            }
+                                            return ctx.dataset.label;
+                                        },
+                                        afterBody: (items) => {
+                                            if (!items.length) return [];
+                                            const s = statsMap[generations[items[0].dataIndex]]
+                                                ?? statsMap[String(generations[items[0].dataIndex])];
+                                            return s && s.variance != null
+                                                ? [`Variance: ${this.formatTuneVizAxisValue(s.variance)}`]
+                                                : [];
+                                        },
+                                    },
+                                },
+                            },
+                            scales: {
+                                x: this.buildTuneVizCategoryXScale(generations.length),
+                                y: this.buildTuneVizYAxisOptions('Value', false),
+                            },
+                        },
+                    });
+                },
+
+                formatTuneVizAxisValue(value) {
+                    if (value == null || Number.isNaN(value)) return '';
+                    const abs = Math.abs(value);
+                    if (abs === 0) return '0';
+                    if (abs >= 1000 || (abs > 0 && abs < 0.001)) {
+                        return value.toExponential(2);
+                    }
+                    if (abs >= 1) return String(Number(value.toPrecision(4)));
+                    return String(Number(value.toPrecision(3)));
+                },
+
+                renderTuneTrendLineChart(canvasId, chartStateKey, generations, values,
+                                         yTitle, lineColor, fillColor, compactYAxis) {
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas || !generations || generations.length === 0) return;
+                    if (state[chartStateKey]) {
+                        state[chartStateKey].destroy();
+                        state[chartStateKey] = null;
+                    }
+                    const labels = generations.map(g => 'Gen ' + g);
+                    state[chartStateKey] = new Chart(canvas.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: yTitle,
+                                data: values,
+                                borderColor: lineColor,
+                                backgroundColor: fillColor,
+                                fill: true,
+                                tension: 0.1,
+                            }],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            layout: this.buildTuneVizChartLayout(generations.length),
+                            scales: {
+                                x: this.buildTuneVizCategoryXScale(generations.length),
+                                y: this.buildTuneVizYAxisOptions(yTitle, compactYAxis),
+                            },
+                        },
+                    });
+                },
+
+                validateParamDistributionJson(data) {
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        return 'Invalid file format.';
+                    }
+                    if (!Array.isArray(data.parameterNames) || data.parameterNames.length === 0) {
+                        return 'Missing parameter list.';
+                    }
+                    if (!data.history || typeof data.history !== 'object') {
+                        return 'Missing distribution history.';
+                    }
+                    let hasValidStats = false;
+                    for (const param of data.parameterNames) {
+                        const genMap = data.history[param];
+                        if (!genMap || typeof genMap !== 'object') {
+                            continue;
+                        }
+                        for (const genKey of Object.keys(genMap)) {
+                            const stats = genMap[genKey];
+                            if (!stats || typeof stats !== 'object') continue;
+                            const required = ['min', 'q1', 'median', 'q3', 'max', 'best', 'iqr', 'variance'];
+                            const valid = required.every(k => typeof stats[k] === 'number' && !Number.isNaN(stats[k]));
+                            if (valid) {
+                                hasValidStats = true;
+                                break;
+                            }
+                        }
+                        if (hasValidStats) break;
+                    }
+                    if (!hasValidStats) {
+                        return 'No valid generation statistics found. Please select a param-distribution.json file.';
+                    }
+                    return null;
+                },
+
+                openParamDistributionFile() {
+                    const input = document.getElementById('paramDistFileInput');
+                    if (!input) return;
+                    input.value = '';
+                    input.click();
+                },
+
+                handleParamDistributionFileSelect(input) {
+                    const file = input.files && input.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            const err = this.validateParamDistributionJson(data);
+                            if (err) {
+                                alert(err);
+                                return;
+                            }
+                            this.showTuneVizHistoryDialog(data, { sourceFileName: file.name });
+                        } catch (parseErr) {
+                            console.error('param-distribution.json parse failed:', parseErr);
+                            alert('Failed to read file. Please select a valid param-distribution.json.');
+                        }
+                    };
+                    reader.onerror = () => {
+                        alert('Failed to read file.');
+                    };
+                    reader.readAsText(file, 'UTF-8');
+                },
+
+                updateTuneVizHistoryHeader(vizData, options) {
+                    options = options || {};
+                    const titleEl = document.getElementById('tuneVizHistoryTitle');
+                    const subEl = document.getElementById('tuneVizHistorySubtitle');
+                    if (titleEl) titleEl.textContent = 'Parameter distribution';
+                    if (subEl) {
+                        const parts = [];
+                        if (vizData.modelFileName) parts.push(vizData.modelFileName);
+                        if (vizData.completedGenerations != null) {
+                            parts.push(`${vizData.completedGenerations} generations`);
+                        } else if (vizData.maxGeneration != null) {
+                            parts.push(`max ${vizData.maxGeneration} generations`);
+                        }
+                        if (vizData.status) parts.push(vizData.status);
+                        if (options.sourceFileName) parts.push(options.sourceFileName);
+                        subEl.textContent = parts.join(' · ');
+                        subEl.style.display = parts.length ? 'block' : 'none';
+                    }
+                },
+
+                fillTuneParamSelect(selectEl, paramNames, selectedParam) {
+                    if (!selectEl) return selectedParam;
+                    const names = (paramNames || []).slice().sort();
+                    selectEl.innerHTML = '';
+                    names.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.textContent = name;
+                        selectEl.appendChild(opt);
+                    });
+                    if (names.length === 0) return null;
+                    if (!selectedParam || !names.includes(selectedParam)) {
+                        selectedParam = names[0];
+                    }
+                    selectEl.value = selectedParam;
+                    return selectedParam;
+                },
+
+                updateTuneVizLive(vizSummary) {
+                    if (!vizSummary || !vizSummary.enabled) {
+                        this.hideTuneVizLive();
+                        return;
+                    }
+                    state.tuneVizLiveSummary = vizSummary;
+                    const section = document.getElementById('tuneVizLiveSection');
+                    if (section) section.style.display = 'block';
+
+                    const selectEl = document.getElementById('tuneVizLiveParamSelect');
+                    const param = this.fillTuneParamSelect(
+                        selectEl,
+                        vizSummary.parameterNames,
+                        selectEl?.value
+                    );
+                    if (!param) return;
+
+                    const statsMap = vizSummary.recentStats?.[param] || {};
+                    const gens = vizSummary.recentGenerations || [];
+                    this.renderTuneDistributionChart('tuneVizLiveChart', 'tuneVizLiveChart', gens, statsMap);
+                },
+
+                onTuneVizLiveParamChange() {
+                    if (!state.tuneVizLiveSummary) return;
+                    this.updateTuneVizLive(state.tuneVizLiveSummary);
+                },
+
+                fetchTuneVizHistory(jobId) {
+                    return axios.get(`http://127.0.0.1:8080/tune/viz/${encodeURIComponent(jobId)}`)
+                        .then(res => {
+                            if (res.data.code != 1) {
+                                throw new Error(res.data.msg || 'Failed to load distribution data.');
+                            }
+                            return res.data.data;
+                        });
+                },
+
+                showTuneVizHistoryDialog(vizData, options) {
+                    state.tuneVizHistoryData = vizData;
+                    state.tuneVizHistorySourceFile = options?.sourceFileName || null;
+                    this.updateTuneVizHistoryHeader(vizData, options || {});
+                    const dialog = document.getElementById('tuneVizHistoryDialog');
+                    const selectEl = document.getElementById('tuneVizHistoryParamSelect');
+                    const param = this.fillTuneParamSelect(
+                        selectEl,
+                        vizData.parameterNames,
+                        selectEl?.value
+                    );
+                    if (dialog) dialog.style.display = 'block';
+                    this.renderTuneVizHistoryCharts(param);
+                },
+
+                closeTuneVizHistoryDialog() {
+                    document.getElementById('tuneVizHistoryDialog').style.display = 'none';
+                    state.tuneVizHistoryData = null;
+                    state.tuneVizHistorySourceFile = null;
+                    const subEl = document.getElementById('tuneVizHistorySubtitle');
+                    if (subEl) {
+                        subEl.textContent = '';
+                        subEl.style.display = 'none';
+                    }
+                    ['tuneVizHistoryChart', 'tuneVizIqrChart', 'tuneVizVarianceChart'].forEach(key => {
+                        if (state[key]) {
+                            state[key].destroy();
+                            state[key] = null;
+                        }
+                    });
+                },
+
+                getTuneStatForGeneration(statsMap, gen) {
+                    return statsMap[gen] ?? statsMap[String(gen)];
+                },
+
+                getTuneTrendValue(mapByGen, gen, param) {
+                    const byGen = mapByGen?.[gen] ?? mapByGen?.[String(gen)];
+                    return byGen?.[param] ?? null;
+                },
+
+                getTuneHistoryGenerations(vizData, param) {
+                    const history = vizData.history?.[param] || {};
+                    return Object.keys(history).map(Number).sort((a, b) => a - b);
+                },
+
+                renderTuneVizHistoryCharts(param) {
+                    const vizData = state.tuneVizHistoryData;
+                    if (!vizData || !param) return;
+                    const gens = this.getTuneHistoryGenerations(vizData, param);
+                    const statsMap = vizData.history?.[param] || {};
+                    this.renderTuneDistributionChart(
+                        'tuneVizHistoryChart', 'tuneVizHistoryChart', gens, statsMap);
+
+                    const showTrends = document.getElementById('tuneVizShowSpreadTrend')?.checked;
+                    const trendWrap = document.getElementById('tuneVizTrendChartsWrap');
+                    if (!showTrends) {
+                        if (trendWrap) trendWrap.style.display = 'none';
+                        if (state.tuneVizIqrChart) {
+                            state.tuneVizIqrChart.destroy();
+                            state.tuneVizIqrChart = null;
+                        }
+                        if (state.tuneVizVarianceChart) {
+                            state.tuneVizVarianceChart.destroy();
+                            state.tuneVizVarianceChart = null;
+                        }
+                        return;
+                    }
+                    if (trendWrap) trendWrap.style.display = 'block';
+                    const iqrValues = gens.map(g =>
+                        this.getTuneTrendValue(vizData.iqrByGeneration, g, param)
+                        ?? this.getTuneStatForGeneration(statsMap, g)?.iqr
+                        ?? null);
+                    const varianceValues = gens.map(g =>
+                        this.getTuneTrendValue(vizData.varianceByGeneration, g, param)
+                        ?? this.getTuneStatForGeneration(statsMap, g)?.variance
+                        ?? null);
+
+                    this.renderTuneTrendLineChart(
+                        'tuneVizIqrChart', 'tuneVizIqrChart',
+                        gens, iqrValues, 'IQR', '#8e44ad', 'rgba(142, 68, 173, 0.1)', false);
+                    this.renderTuneTrendLineChart(
+                        'tuneVizVarianceChart', 'tuneVizVarianceChart',
+                        gens, varianceValues, 'Variance', '#d35400', 'rgba(211, 84, 0, 0.1)', true);
+                },
+
+                onTuneVizHistoryParamChange() {
+                    const param = document.getElementById('tuneVizHistoryParamSelect')?.value;
+                    this.renderTuneVizHistoryCharts(param);
+                },
+
+                onTuneVizShowSpreadTrendChange() {
+                    const param = document.getElementById('tuneVizHistoryParamSelect')?.value;
+                    this.renderTuneVizHistoryCharts(param);
+                },
+
+                resumeActiveTuneJob() {
+                    const storedJobId = sessionStorage.getItem(TUNE_JOB_STORAGE_KEY);
+                    const tryResume = (jobId) => {
+                        if (!jobId) return;
+                        axios.get(`http://127.0.0.1:8080/tune/status/${encodeURIComponent(jobId)}`)
+                            .then(res => {
+                                if (res.data.code != 1 || !res.data.data) {
+                                    clearTuneJobSession();
+                                    return;
+                                }
+                                const status = res.data.data;
+                                if (status.status === 'RUNNING') {
+                                    state.tuneJobId = jobId;
+                                    state.tuneCancelRequested = !!status.cancelRequested;
+                                    const storedRecord = sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY);
+                                    state.recordParamDistribution = storedRecord === '1';
+                                    beginBackendTask('tune');
+                                    this.showTuneProgressDialog();
+                                    this.updateTuneProgressUI(status);
+                                    if (status.vizSummary) {
+                                        this.updateTuneVizLive(status.vizSummary);
+                                    }
+                                    stopTunePolling();
+                                    state.tunePollTimer = setInterval(() => {
+                                        this.pollTuneJobStatus(jobId);
+                                    }, TUNE_POLL_INTERVAL_MS);
+                                } else {
+                                    clearTuneJobSession();
+                                }
+                            })
+                            .catch(() => {
+                                axios.get('http://127.0.0.1:8080/tune/active')
+                                    .then(res => {
+                                        if (res.data.code == 1 && res.data.data && res.data.data.status === 'RUNNING') {
+                                            sessionStorage.setItem(TUNE_JOB_STORAGE_KEY, res.data.data.jobId);
+                                            tryResume(res.data.data.jobId);
+                                        } else {
+                                            clearTuneJobSession();
+                                        }
+                                    })
+                                    .catch(() => clearTuneJobSession());
+                            });
+                    };
+                    if (storedJobId) {
+                        tryResume(storedJobId);
+                    } else {
+                        axios.get('http://127.0.0.1:8080/tune/active')
+                            .then(res => {
+                                if (res.data.code == 1 && res.data.data && res.data.data.status === 'RUNNING') {
+                                    sessionStorage.setItem(TUNE_JOB_STORAGE_KEY, res.data.data.jobId);
+                                    tryResume(res.data.data.jobId);
+                                }
+                            })
+                            .catch(() => { });
+                    }
                 },
 
                 runSA() {
@@ -4631,9 +5735,10 @@
                     model.textCommand = state.textCommand;
 
                     const confirmBtn = document.getElementById('saConfirmBtn');
+                    this.closeSADialog();
+                    if (!beginBackendTask('sa')) return;
                     confirmBtn.disabled = true;
                     confirmBtn.textContent = 'Analyzing...';
-                    this.closeSADialog();
 
                     axios.post('http://127.0.0.1:8080/sensitivityAnalysis', {
                         model: model,
@@ -4652,6 +5757,7 @@
                             console.error('SA request failed:', error);
                         })
                         .finally(() => {
+                            endBackendTask('sa');
                             confirmBtn.disabled = false;
                             confirmBtn.textContent = 'OK';
                         });
@@ -5016,10 +6122,17 @@
         CircuitDesigner.makeDialogDraggable(dialog);
         dialog = document.getElementById('paramDialog')
         CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('tuneDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('tuneProgressDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
+        dialog = document.getElementById('tuneVizHistoryDialog')
+        CircuitDesigner.makeDialogDraggable(dialog);
         dialog = document.getElementById('saDialog')
         CircuitDesigner.makeDialogDraggable(dialog);
         dialog = document.getElementById('saResultDialog')
         CircuitDesigner.makeDialogDraggable(dialog);
+        CircuitDesigner.resumeActiveTuneJob();
     </script>
 </body>
 
