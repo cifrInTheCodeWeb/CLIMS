@@ -317,6 +317,16 @@
             color: white;
         }
 
+        .save-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+
+        .save-btn:disabled:hover {
+            opacity: 0.75;
+        }
+
         .cancel-btn {
             background: #e74c3c;
             color: white;
@@ -586,8 +596,8 @@
         }
 
         #tuneProgressDialog {
-            width: 720px;
-            max-width: 92vw;
+            width: 780px;
+            max-width: 94vw;
         }
 
         #tuneVizHistoryDialog {
@@ -679,6 +689,38 @@
             gap: 12px 20px;
             align-items: center;
             margin-bottom: 8px;
+        }
+
+        .tune-curve-fit-list {
+            max-height: 360px;
+            overflow-y: auto;
+            margin-top: 8px;
+            padding-right: 4px;
+        }
+
+        .tune-curve-fit-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #fff;
+            padding: 10px 12px 8px;
+            margin-bottom: 10px;
+        }
+
+        .tune-curve-fit-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin: 0 0 8px;
+        }
+
+        .tune-curve-fit-title .tune-curve-rmse {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .tune-curve-fit-chart {
+            position: relative;
+            height: 132px;
         }
     </style>
     <script src="node_modules/axios/dist/axios.min.js"></script>
@@ -810,9 +852,13 @@
                 <input type="checkbox" id="tuneRecordVizCheckbox">
                 Record parameter distribution
             </label>
+            <label class="tune-viz-option">
+                <input type="checkbox" id="tuneRecordCurveCheckbox" checked>
+                Show waveform fit comparison
+            </label>
         </div>
         <div class="dialog-footer">
-            <button class="save-btn" id="tuneConfirmBtn" disabled onclick="CircuitDesigner.confirmTune()">Start
+            <button class="save-btn" id="tuneConfirmBtn" onclick="CircuitDesigner.confirmTune()">Start
                 tuning</button>
             <button class="cancel-btn" onclick="CircuitDesigner.closeTuneDialog()">Cancel</button>
         </div>
@@ -842,6 +888,14 @@
                         <canvas id="tuneVizLiveChart"></canvas>
                     </div>
                     <p class="hint tune-viz-hint">Up to 5 recent generations (including initial population).</p>
+                </div>
+            </div>
+            <div id="tuneCurveFitSection" class="tune-viz-section" style="display:none;">
+                <button type="button" class="tune-viz-toggle" id="tuneCurveFitToggle"
+                    onclick="CircuitDesigner.toggleTuneCurveFit()">Waveform fit ▾</button>
+                <div id="tuneCurveFitBody" class="tune-viz-body">
+                    <p class="hint tune-viz-hint" id="tuneCurveFitHint" style="margin-top:0;"></p>
+                    <div id="tuneCurveFitList" class="tune-curve-fit-list"></div>
                 </div>
             </div>
         </div>
@@ -1094,8 +1148,12 @@
                 tunePollTimer: null,
                 tuneCancelRequested: false,
                 recordParamDistribution: false,
+                recordCurveComparison: true,
                 tuneVizLiveSummary: null,
                 tuneVizHistoryData: null,
+                tuneCurveSummary: null,
+                tuneCurveFitCharts: [],
+                tuneCurveFitExpanded: true,
                 tuneVizLiveChart: null,
                 tuneVizHistoryChart: null,
                 tuneVizIqrChart: null,
@@ -3474,6 +3532,10 @@
                     tunePollTimer: null,
                     tuneCancelRequested: false,
                     recordParamDistribution: false,
+                    recordCurveComparison: true,
+                    tuneCurveSummary: null,
+                    tuneCurveFitCharts: [],
+                    tuneCurveFitExpanded: true,
                     tuneVizLiveSummary: null,
                     tuneVizHistoryData: null,
                     tuneVizLiveChart: null,
@@ -4369,7 +4431,9 @@
             const BACKEND_TASK_KEYS = ['run', 'tune', 'sa'];
             const TUNE_JOB_STORAGE_KEY = 'climps_tune_job_id';
             const TUNE_RECORD_VIZ_STORAGE_KEY = 'climps_tune_record_viz';
+            const TUNE_RECORD_CURVE_STORAGE_KEY = 'climps_tune_record_curve';
             const TUNE_POLL_INTERVAL_MS = 30000;
+            const TUNE_CURVE_DOWNSAMPLE_MAX = 1500;
             const BACKEND_TASK_BUTTONS = {
                 run: { id: 'runBtn', idle: 'Run', busy: 'Running...' },
                 tune: { id: 'tuneBtn', idle: 'Tune', busy: 'Tuning...' },
@@ -4418,6 +4482,7 @@
             function clearTuneJobSession() {
                 sessionStorage.removeItem(TUNE_JOB_STORAGE_KEY);
                 sessionStorage.removeItem(TUNE_RECORD_VIZ_STORAGE_KEY);
+                sessionStorage.removeItem(TUNE_RECORD_CURVE_STORAGE_KEY);
                 state.tuneJobId = null;
                 state.tuneCancelRequested = false;
             }
@@ -4865,7 +4930,7 @@
                     if (uploadBtn) uploadBtn.style.display = hasCurves ? 'none' : '';
                     if (fileChip) fileChip.style.display = hasCurves ? 'flex' : 'none';
                     if (confirmBtn) {
-                        confirmBtn.disabled = !hasCurves || !!state.activeBackendTask;
+                        confirmBtn.disabled = !!state.activeBackendTask;
                     }
                     if (hasCurves) {
                         document.getElementById('tuneCsvFileName').textContent =
@@ -4928,12 +4993,31 @@
                     if (state.activeBackendTask) return;
                     const errorEl = document.getElementById('tuneCsvError');
                     if (errorEl) errorEl.textContent = '';
+                    const storedRecord = sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY);
+                    if (storedRecord != null) {
+                        state.recordParamDistribution = storedRecord === '1';
+                    }
+                    const storedCurve = sessionStorage.getItem(TUNE_RECORD_CURVE_STORAGE_KEY);
+                    if (storedCurve != null) {
+                        state.recordCurveComparison = storedCurve === '1';
+                    }
+                    const vizCb = document.getElementById('tuneRecordVizCheckbox');
+                    if (vizCb) vizCb.checked = state.recordParamDistribution;
+                    const curveCb = document.getElementById('tuneRecordCurveCheckbox');
+                    if (curveCb) curveCb.checked = state.recordCurveComparison !== false;
                     this.updateTuneDialogUI();
                     document.getElementById('tuneDialog').style.display = 'block';
                 },
 
                 confirmTune() {
-                    if (!state.targetCurves) return;
+                    const errorEl = document.getElementById('tuneCsvError');
+                    if (!state.targetCurves) {
+                        if (errorEl) {
+                            errorEl.textContent = 'Please upload a target waveform CSV before starting tuning.';
+                        }
+                        return;
+                    }
+                    if (errorEl) errorEl.textContent = '';
 
                     let model = this.getCircuitModel()
                     if (state.fileName === null) {
@@ -4959,8 +5043,11 @@
                     model.fileName = state.fileName
                     model.textCommand = state.textCommand
                     state.recordParamDistribution = !!document.getElementById('tuneRecordVizCheckbox')?.checked;
+                    state.recordCurveComparison = document.getElementById('tuneRecordCurveCheckbox')?.checked !== false;
                     sessionStorage.setItem(TUNE_RECORD_VIZ_STORAGE_KEY,
                         state.recordParamDistribution ? '1' : '0');
+                    sessionStorage.setItem(TUNE_RECORD_CURVE_STORAGE_KEY,
+                        state.recordCurveComparison ? '1' : '0');
 
                     const confirmBtn = document.getElementById('tuneConfirmBtn');
                     this.closeTuneDialog();
@@ -4969,7 +5056,8 @@
                     axios.post('http://127.0.0.1:8080/tune/start', {
                         model: model,
                         targetCurves: state.targetCurves,
-                        recordParamDistribution: state.recordParamDistribution
+                        recordParamDistribution: state.recordParamDistribution,
+                        recordCurveComparison: state.recordCurveComparison
                     })
                         .then(res => {
                             if (res.data.code == 0) {
@@ -4998,11 +5086,18 @@
                     state.tuneJobId = jobId;
                     state.tuneCancelRequested = false;
                     state.tuneVizLiveSummary = null;
+                    state.tuneCurveSummary = null;
                     this.destroyTuneVizCharts();
+                    this.destroyTuneCurveFitCharts();
                     this.hideTuneVizLive();
+                    this.hideTuneCurveFit();
                     const storedRecord = sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY);
                     if (storedRecord != null) {
                         state.recordParamDistribution = storedRecord === '1';
+                    }
+                    const storedCurve = sessionStorage.getItem(TUNE_RECORD_CURVE_STORAGE_KEY);
+                    if (storedCurve != null) {
+                        state.recordCurveComparison = storedCurve === '1';
                     }
                     sessionStorage.setItem(TUNE_JOB_STORAGE_KEY, jobId);
                     if (!beginBackendTask('tune')) return;
@@ -5026,6 +5121,7 @@
 
                 closeTuneProgressDialog() {
                     document.getElementById('tuneProgressDialog').style.display = 'none';
+                    this.destroyTuneCurveFitCharts();
                 },
 
                 updateTuneProgressUI(status) {
@@ -5064,6 +5160,11 @@
                             } else if (!state.recordParamDistribution) {
                                 this.hideTuneVizLive();
                             }
+                            if (status.curveSummary) {
+                                this.updateTuneCurveFit(status.curveSummary);
+                            } else if (!state.recordCurveComparison) {
+                                this.hideTuneCurveFit();
+                            }
                             if (status.status !== 'RUNNING') {
                                 this.handleTuneJobTerminal(status);
                             }
@@ -5081,7 +5182,10 @@
                     clearTuneJobSession();
                     endBackendTask('tune');
                     this.closeTuneProgressDialog();
+                    this.destroyTuneVizCharts();
+                    this.destroyTuneCurveFitCharts();
                     this.hideTuneVizLive();
+                    this.hideTuneCurveFit();
 
                     if (!status) {
                         alert(errorMsg || 'Tuning status unavailable.');
@@ -5521,6 +5625,237 @@
                     this.updateTuneVizLive(state.tuneVizLiveSummary);
                 },
 
+                destroyTuneCurveFitCharts() {
+                    if (state.tuneCurveFitCharts) {
+                        state.tuneCurveFitCharts.forEach(chart => {
+                            if (chart) chart.destroy();
+                        });
+                    }
+                    state.tuneCurveFitCharts = [];
+                    const list = document.getElementById('tuneCurveFitList');
+                    if (list) list.innerHTML = '';
+                },
+
+                hideTuneCurveFit() {
+                    const section = document.getElementById('tuneCurveFitSection');
+                    if (section) section.style.display = 'none';
+                },
+
+                toggleTuneCurveFit() {
+                    state.tuneCurveFitExpanded = !state.tuneCurveFitExpanded;
+                    const body = document.getElementById('tuneCurveFitBody');
+                    const toggle = document.getElementById('tuneCurveFitToggle');
+                    if (body) body.classList.toggle('collapsed', !state.tuneCurveFitExpanded);
+                    if (toggle) {
+                        toggle.textContent = state.tuneCurveFitExpanded
+                            ? 'Waveform fit ▾'
+                            : 'Waveform fit ▸';
+                    }
+                },
+
+                formatTuneCurveRmse(value) {
+                    if (value == null || !Number.isFinite(value)) return '—';
+                    const abs = Math.abs(value);
+                    if (abs >= 1000 || (abs > 0 && abs < 0.001)) return value.toExponential(3);
+                    return value.toFixed(4);
+                },
+
+                resampleCurveAtTimes(sourceTimes, sourceValues, targetTimes) {
+                    if (!Array.isArray(sourceTimes) || !Array.isArray(sourceValues) || !Array.isArray(targetTimes)) {
+                        return [];
+                    }
+                    if (sourceTimes.length === 0 || sourceValues.length === 0 || targetTimes.length === 0) {
+                        return [];
+                    }
+                    const out = new Array(targetTimes.length);
+                    let j = 0;
+                    for (let i = 0; i < targetTimes.length; i++) {
+                        const t = targetTimes[i];
+                        while (j < sourceTimes.length - 1 && sourceTimes[j + 1] < t) {
+                            j++;
+                        }
+                        if (t <= sourceTimes[0]) {
+                            out[i] = sourceValues[0];
+                        } else if (t >= sourceTimes[sourceTimes.length - 1]) {
+                            out[i] = sourceValues[sourceValues.length - 1];
+                        } else {
+                            const t0 = sourceTimes[j];
+                            const t1 = sourceTimes[j + 1];
+                            const v0 = sourceValues[j];
+                            const v1 = sourceValues[j + 1];
+                            const ratio = t1 === t0 ? 0 : (t - t0) / (t1 - t0);
+                            out[i] = v0 + ratio * (v1 - v0);
+                        }
+                    }
+                    return out;
+                },
+
+                formatTuneCurveFitTick(value) {
+                    if (Math.abs(value) < 1e-12) return '0';
+                    const rounded = Math.round(value * 1000) / 1000;
+                    if (Number.isInteger(rounded)) return String(rounded);
+                    return String(rounded).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+                },
+
+                computeTuneCurveFitXTicks(timePoints, tickCount = 5) {
+                    const xMin = timePoints[0];
+                    const xMax = timePoints[timePoints.length - 1];
+                    const span = xMax - xMin;
+                    if (!Number.isFinite(span) || span <= 0) {
+                        return { xMin, xMax, values: [xMin] };
+                    }
+                    const count = Math.max(2, tickCount);
+                    const values = [];
+                    for (let i = 0; i < count; i++) {
+                        values.push(xMin + (span * i) / (count - 1));
+                    }
+                    return { xMin, xMax, values };
+                },
+
+                buildTuneCurveFitChartOptions(xTicks) {
+                    return {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                align: 'end',
+                                labels: { boxWidth: 10, boxHeight: 2, font: { size: 10 } },
+                            },
+                        },
+                        elements: {
+                            point: { radius: 0, hoverRadius: 3 },
+                            line: { borderWidth: 1.5 },
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                min: xTicks.xMin,
+                                max: xTicks.xMax,
+                                grace: 0,
+                                afterBuildTicks: (axis) => {
+                                    axis.ticks = xTicks.values.map((value) => ({ value }));
+                                },
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 0,
+                                    font: { size: 10 },
+                                    callback: (value) => this.formatTuneCurveFitTick(value),
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                            },
+                            y: {
+                                ticks: { maxTicksLimit: 4, font: { size: 10 } },
+                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                            },
+                        },
+                    };
+                },
+
+                renderTuneCurveFitChart(canvas, timePoints, targetPoints, bestPoints) {
+                    const datasets = [];
+                    if (targetPoints?.length) {
+                        datasets.push({
+                            label: 'Target',
+                            data: timePoints.map((t, i) => ({ x: t, y: targetPoints[i] })),
+                            borderColor: '#94a3b8',
+                            borderDash: [4, 3],
+                            borderWidth: 1.5,
+                            fill: false,
+                        });
+                    }
+                    if (bestPoints?.length) {
+                        datasets.push({
+                            label: 'Best',
+                            data: timePoints.map((t, i) => ({ x: t, y: bestPoints[i] })),
+                            borderColor: '#2563eb',
+                            borderWidth: 2,
+                            fill: false,
+                        });
+                    }
+                    if (!datasets.length) return null;
+                    const xTicks = this.computeTuneCurveFitXTicks(timePoints);
+                    return new Chart(canvas.getContext('2d'), {
+                        type: 'line',
+                        data: { datasets },
+                        options: this.buildTuneCurveFitChartOptions(xTicks),
+                    });
+                },
+
+                updateTuneCurveFit(curveSummary) {
+                    if (!curveSummary || !curveSummary.enabled) {
+                        this.hideTuneCurveFit();
+                        return;
+                    }
+                    if (!state.recordCurveComparison) {
+                        this.hideTuneCurveFit();
+                        return;
+                    }
+                    state.tuneCurveSummary = curveSummary;
+                    const section = document.getElementById('tuneCurveFitSection');
+                    if (section) section.style.display = 'block';
+
+                    const hint = document.getElementById('tuneCurveFitHint');
+                    const gen = curveSummary.currentGeneration ?? 0;
+                    const fitness = curveSummary.bestFitness;
+                    let hintText = `Generation ${gen}`;
+                    if (fitness != null && Number.isFinite(fitness)) {
+                        hintText += ` · best fitness ${this.formatTuneCurveRmse(fitness)}`;
+                    }
+                    hintText += ' · sorted by RMSE (largest first)';
+                    if (hint) hint.textContent = hintText;
+
+                    const rmseMap = curveSummary.rmseByCurve || {};
+                    const bestCurves = curveSummary.bestCurves || {};
+                    const timePoints = curveSummary.time || [];
+                    const curveNames = Object.keys(rmseMap)
+                        .sort((a, b) => (rmseMap[b] ?? 0) - (rmseMap[a] ?? 0));
+
+                    this.destroyTuneCurveFitCharts();
+                    const list = document.getElementById('tuneCurveFitList');
+                    if (!list) return;
+
+                    const targetTimes = state.targetCurves?.time;
+                    curveNames.forEach((name, index) => {
+                        const rmse = rmseMap[name];
+                        const bestVals = bestCurves[name];
+                        if (!Array.isArray(bestVals) || bestVals.length === 0 || timePoints.length === 0) {
+                            return;
+                        }
+
+                        const card = document.createElement('div');
+                        card.className = 'tune-curve-fit-card';
+
+                        const title = document.createElement('p');
+                        title.className = 'tune-curve-fit-title';
+                        title.innerHTML = `${name} · RMSE <span class="tune-curve-rmse">${this.formatTuneCurveRmse(rmse)}</span>`;
+
+                        const chartWrap = document.createElement('div');
+                        chartWrap.className = 'tune-curve-fit-chart';
+
+                        const canvas = document.createElement('canvas');
+                        canvas.id = `tuneCurveFitChart_${index}`;
+                        chartWrap.appendChild(canvas);
+                        card.appendChild(title);
+                        card.appendChild(chartWrap);
+                        list.appendChild(card);
+
+                        let targetVals = null;
+                        if (targetTimes && state.targetCurves?.[name]) {
+                            targetVals = this.resampleCurveAtTimes(
+                                targetTimes,
+                                state.targetCurves[name],
+                                timePoints
+                            );
+                        }
+                        const chart = this.renderTuneCurveFitChart(canvas, timePoints, targetVals, bestVals);
+                        if (chart) state.tuneCurveFitCharts.push(chart);
+                    });
+                },
+
                 fetchTuneVizHistory(jobId) {
                     return axios.get(`http://127.0.0.1:8080/tune/viz/${encodeURIComponent(jobId)}`)
                         .then(res => {
@@ -5643,11 +5978,16 @@
                                     state.tuneCancelRequested = !!status.cancelRequested;
                                     const storedRecord = sessionStorage.getItem(TUNE_RECORD_VIZ_STORAGE_KEY);
                                     state.recordParamDistribution = storedRecord === '1';
+                                    const storedCurve = sessionStorage.getItem(TUNE_RECORD_CURVE_STORAGE_KEY);
+                                    state.recordCurveComparison = storedCurve !== '0';
                                     beginBackendTask('tune');
                                     this.showTuneProgressDialog();
                                     this.updateTuneProgressUI(status);
                                     if (status.vizSummary) {
                                         this.updateTuneVizLive(status.vizSummary);
+                                    }
+                                    if (status.curveSummary) {
+                                        this.updateTuneCurveFit(status.curveSummary);
                                     }
                                     stopTunePolling();
                                     state.tunePollTimer = setInterval(() => {
