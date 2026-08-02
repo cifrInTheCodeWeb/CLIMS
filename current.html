@@ -56,6 +56,108 @@
             opacity: 0.7;
         }
 
+        .toolbar-file-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .toolbar-file-menu>summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .toolbar-file-menu>summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .toolbar-file-menu>summary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 10px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .toolbar-file-menu[open]>summary {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .toolbar-file-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 220px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+            padding: 6px 0;
+            z-index: 1200;
+        }
+
+        .toolbar-file-dropdown button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            border: none;
+            border-radius: 0;
+            background: transparent !important;
+            color: #1e293b !important;
+            box-shadow: none !important;
+            transform: none !important;
+            padding: 8px 14px;
+            font-weight: 500;
+        }
+
+        .toolbar-file-dropdown button:hover:not(:disabled) {
+            background: #f1f5f9 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .toolbar-file-dropdown button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            background: transparent !important;
+        }
+
+        .toolbar-file-dropdown .menu-sep {
+            height: 1px;
+            margin: 6px 10px;
+            background: #e2e8f0;
+        }
+
+        .toolbar-file-dropdown .menu-section-label {
+            padding: 6px 14px 2px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .toolbar-file-dropdown .recent-item {
+            font-weight: 400;
+        }
+
+        .toolbar-file-dropdown .recent-item.current {
+            color: #667eea !important;
+            font-weight: 600;
+        }
+
+        .toolbar-file-dropdown .recent-empty {
+            padding: 6px 14px 10px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
         .canvas-window {
             margin: 20px;
             /* 容器外部留白，与页面其他元素保持距离 */
@@ -471,18 +573,48 @@
             color: #2c3e50;
             z-index: 100;
             max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
             border: 1px solid linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
+            cursor: default;
         }
 
         #fileNameDisplay::before {
             content: "📄";
             margin-right: 8px;
             font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        #fileNameDisplay .file-name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        /* Hover: full filename floating tip below the pill */
+        #fileNameDisplay[data-full-name]::after {
+            content: none;
+        }
+
+        #fileNameDisplay[data-full-name]:hover::after {
+            content: attr(data-full-name);
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            max-width: min(70vw, 420px);
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(44, 62, 80, 0.95);
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: normal;
+            word-break: break-all;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            z-index: 101;
+            pointer-events: none;
         }
 
         #saResultTable {
@@ -729,10 +861,23 @@
 </head>
 
 <body>
-    <div id="fileNameDisplay">unnamed</div>
+    <div id="fileNameDisplay" data-full-name="untitled"><span class="file-name-text">untitled</span></div>
     <div id="toolbar">
-        <button onclick="CircuitDesigner.newProject()">New</button>
-        <button onclick="CircuitDesigner.openFile()">Open</button>
+        <details class="toolbar-file-menu" id="fileMenu">
+            <summary>File ▾</summary>
+            <div class="toolbar-file-dropdown" id="fileMenuDropdown">
+                <button type="button" onclick="CircuitDesigner.newProject()">New</button>
+                <button type="button" onclick="CircuitDesigner.openFile()">Open…</button>
+                <div class="menu-sep"></div>
+                <button type="button" id="fileSaveBtn" onclick="CircuitDesigner.saveModel()">Save</button>
+                <button type="button" id="fileSaveAsBtn" onclick="CircuitDesigner.saveModelAs()">Save As…</button>
+                <div class="menu-sep"></div>
+                <div class="menu-section-label">Recent</div>
+                <div id="fileRecentList"></div>
+                <button type="button" id="fileClearRecentBtn" onclick="CircuitDesigner.clearRecentFiles()">Clear
+                    recent</button>
+            </div>
+        </details>
         <button disabled onclick="CircuitDesigner.toggleGrid()" id="gridToggle">Show grid</button> <!-- 新增按钮 -->
         <button disabled id="simuSetBtn" onclick="CircuitDesigner.showParamDialog()">Simulation setting</button>
         <button disabled id="runBtn" title="Running simulation" onclick="CircuitDesigner.run()">Run</button>
@@ -983,7 +1128,7 @@
             <button class="close-btn" onclick="CircuitDesigner.closeTextCommandDialog()">×</button>
         </div>
         <div class="dialog-body">
-            <p class="hint">Please enter spice control command; Shift+Enter for a new line.</p>
+            <p class="hint">Please enter spice control command; Shift+Enter for a new line. Do not add a leading "."</p>
             <textarea id="textCommandInput"></textarea>
         </div>
         <div class="dialog-footer">
@@ -3758,21 +3903,61 @@
                 //更新文件名显示
                 updateFileNameDisplay()
                 redraw();
+                markCircuitClean();
             }
 
             // 添加检查内容方法
             function hasContent() {
                 return state.components.length > 0 || state.wires.length > 0;
             }
+
+            /** Snapshot of editable circuit state for dirty detection (Save prompt). */
+            let circuitCleanSnapshot = null;
+
+            function getCircuitSnapshot() {
+                return JSON.stringify({
+                    fileName: state.fileName || null,
+                    textCommand: state.textCommand || '',
+                    params: {
+                        stopTime: state.params?.stopTime ?? '',
+                        maxStep: state.params?.maxStep ?? '',
+                        saveTime: state.params?.saveTime ?? '',
+                    },
+                    components: (state.components || []).map(c => ({
+                        type: c.type,
+                        name: c.name,
+                        value: c.value,
+                        x: c.x,
+                        y: c.y,
+                        rotation: c.rotation || 0,
+                    })),
+                    wires: (state.wires || []).map(w => ({
+                        points: (w.points || []).map(p => ({ x: p.x, y: p.y })),
+                    })),
+                });
+            }
+
+            function markCircuitClean() {
+                circuitCleanSnapshot = getCircuitSnapshot();
+            }
+
+            function isCircuitDirty() {
+                if (circuitCleanSnapshot == null) {
+                    // Never saved/loaded in this session: dirty only if there is something to save.
+                    return hasContent() || !!(state.textCommand && state.textCommand.trim());
+                }
+                return getCircuitSnapshot() !== circuitCleanSnapshot;
+            }
+
             function loadFromJSON(data) {
                 // 清空当前状态
                 state.components = [];
                 state.wires = [];
-                state.fileName = data.fileName;;
+                state.fileName = normalizeCircuitFileName(data.fileName) || data.fileName || null;
                 state.params.maxStep = data.simulationParams.maxStep;
                 state.params.saveTime = data.simulationParams.saveTime;
                 state.params.stopTime = data.simulationParams.stopTime
-                state.textCommand = data.textCommand || state.textCommand;
+                state.textCommand = data.textCommand || '';
 
                 // 加载组件
                 data.components.forEach(compData => {
@@ -3802,7 +3987,8 @@
                 // 重绘画布
                 redraw();
                 //更新文件名显示
-                updateFileNameDisplay()
+                updateFileNameDisplay();
+                markCircuitClean();
             }
             //选中并读入本地json文件
             document.getElementById('fileInput').addEventListener('change', function () {
@@ -3812,13 +3998,23 @@
                     reader.onload = function (e) {
                         try {
                             const jsonData = JSON.parse(e.target.result);
-                            //加载之前先处理画布状态
-                            CircuitDesigner.newProject()
-                            loadFromJSON(jsonData)
+                            prepareCanvasForLoad();
+                            loadFromJSON(jsonData);
+                            const name = normalizeCircuitFileName(jsonData.fileName)
+                                || normalizeCircuitFileName(file.name);
+                            if (name) {
+                                state.fileName = name;
+                                updateFileNameDisplay();
+                                rememberRecentFile(name);
+                                refreshFileMenuRecentList();
+                                markCircuitClean();
+                            }
                             console.log('从本地获取到的json电路数据：', jsonData);
-                            // 在这里可以对获取到的 JSON 数据进行进一步处理
                         } catch (error) {
                             console.error('解析 JSON 文件出错：', error);
+                            alert('Failed to parse JSON file.');
+                        } finally {
+                            document.getElementById('fileInput').value = '';
                         }
                     };
                     reader.onerror = function () {
@@ -4646,6 +4842,8 @@
             const TUNE_RECORD_CURVE_STORAGE_KEY = 'climps_tune_record_curve';
             const TUNE_POLL_INTERVAL_MS = 30000;
             const TUNE_CURVE_DOWNSAMPLE_MAX = 1500;
+            const RECENT_FILES_STORAGE_KEY = 'climps_recent_files';
+            const RECENT_FILES_MAX = 8;
             const BACKEND_TASK_BUTTONS = {
                 run: { id: 'runBtn', idle: 'Run', busy: 'Running...' },
                 tune: { id: 'tuneBtn', idle: 'Tune', busy: 'Tuning...' },
@@ -4699,6 +4897,104 @@
                 state.tuneCancelRequested = false;
             }
 
+            function normalizeCircuitFileName(name) {
+                if (name == null) return null;
+                let n = String(name).trim();
+                if (!n) return null;
+                if (n.toLowerCase().endsWith('.json')) {
+                    n = n.slice(0, -5).trim();
+                }
+                if (!n || n.includes('..') || n.includes('/') || n.includes('\\')) {
+                    return null;
+                }
+                return n;
+            }
+
+            function getRecentFiles() {
+                try {
+                    const raw = localStorage.getItem(RECENT_FILES_STORAGE_KEY);
+                    const list = raw ? JSON.parse(raw) : [];
+                    return Array.isArray(list) ? list : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function setRecentFiles(list) {
+                localStorage.setItem(RECENT_FILES_STORAGE_KEY, JSON.stringify(list.slice(0, RECENT_FILES_MAX)));
+            }
+
+            function rememberRecentFile(fileName) {
+                const name = normalizeCircuitFileName(fileName);
+                if (!name) return;
+                const next = getRecentFiles().filter(item => item.fileName !== name);
+                next.unshift({ fileName: name, lastOpenedAt: Date.now() });
+                setRecentFiles(next);
+            }
+
+            function removeRecentFile(fileName) {
+                const name = normalizeCircuitFileName(fileName);
+                if (!name) return;
+                setRecentFiles(getRecentFiles().filter(item => item.fileName !== name));
+            }
+
+            function closeFileMenu() {
+                const menu = document.getElementById('fileMenu');
+                if (menu) menu.open = false;
+            }
+
+            function refreshFileMenuRecentList() {
+                const listEl = document.getElementById('fileRecentList');
+                const clearBtn = document.getElementById('fileClearRecentBtn');
+                if (!listEl) return;
+                const recent = getRecentFiles();
+                listEl.innerHTML = '';
+                if (recent.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'recent-empty';
+                    empty.textContent = 'No recent files';
+                    listEl.appendChild(empty);
+                    if (clearBtn) clearBtn.style.display = 'none';
+                    return;
+                }
+                if (clearBtn) clearBtn.style.display = '';
+                recent.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'recent-item' + (item.fileName === state.fileName ? ' current' : '');
+                    btn.textContent = item.fileName;
+                    btn.title = item.fileName;
+                    btn.onclick = () => CircuitDesigner.openRecentFile(item.fileName);
+                    listEl.appendChild(btn);
+                });
+            }
+
+            function ensureCanvasWindow() {
+                let canvasWindow = document.querySelector('.canvas-window');
+                if (canvasWindow) return canvasWindow;
+                canvasWindow = document.createElement('div');
+                canvasWindow.className = 'canvas-window';
+                canvasWindow.innerHTML = `<canvas></canvas>`;
+                document.body.appendChild(canvasWindow);
+                initCanvas(canvasWindow.querySelector('canvas'));
+                updateButtonStates();
+                return canvasWindow;
+            }
+
+            function prepareCanvasForLoad() {
+                ensureCanvasWindow();
+                if (isCircuitDirty()) {
+                    const shouldSave = confirm('当前电路图未保存，是否保存？');
+                    if (shouldSave) {
+                        CircuitDesigner.saveModel();
+                    }
+                }
+                if (hasContent() || state.fileName || (state.textCommand && state.textCommand.trim())) {
+                    clearCanvas();
+                    clearProbeIndex();
+                }
+            }
+
             // 添加函数来更新按钮状态
             function updateButtonStates() {
                 const hasCanvas = document.querySelector('.canvas-window') !== null;
@@ -4729,13 +5025,15 @@
                 const display = document.getElementById('fileNameDisplay');
                 if (!display) return;
 
-                if (state.fileName) {
-                    display.textContent = state.fileName;
-                    // display.classList.remove('editing');
-                } else {
-                    display.textContent = '未命名';
-                    // display.classList.add('editing');
+                const label = state.fileName || 'untitled';
+                let textEl = display.querySelector('.file-name-text');
+                if (!textEl) {
+                    textEl = document.createElement('span');
+                    textEl.className = 'file-name-text';
+                    display.appendChild(textEl);
                 }
+                textEl.textContent = label;
+                display.setAttribute('data-full-name', label);
             }
 
 
@@ -4845,27 +5143,115 @@
 
                 toggleGrid, // 新增方法
                 newProject() {
+                    closeFileMenu();
                     const existingCanvas = document.querySelector('.canvas-window');
 
                     if (existingCanvas) {
-                        if (hasContent()) {
+                        if (isCircuitDirty()) {
                             const shouldSave = confirm('当前电路图未保存，是否保存？');
                             if (shouldSave) {
                                 this.saveModel();
                             }
-                            clearCanvas();
                         }
-                        // 如果画布存在但无内容，不做任何操作
+                        if (hasContent() || state.fileName || (state.textCommand && state.textCommand.trim())) {
+                            clearCanvas();
+                            clearProbeIndex();
+                        }
+                        // 画布已空且无未保存改动时，不做任何操作
                     } else {
-                        // 创建新画布
-                        const canvasWindow = document.createElement('div');
-                        canvasWindow.className = 'canvas-window';
-                        canvasWindow.innerHTML = `<canvas></canvas>`;
-                        document.body.appendChild(canvasWindow);
-                        initCanvas(canvasWindow.querySelector('canvas'));
-                        // 更新按钮状态
-                        updateButtonStates();
+                        ensureCanvasWindow();
+                        markCircuitClean();
                     }
+                },
+                openFile() {
+                    closeFileMenu();
+                    document.getElementById('fileInput').click();
+                },
+                clearRecentFiles() {
+                    closeFileMenu();
+                    if (!getRecentFiles().length) return;
+                    if (!confirm('Clear all recent files?')) return;
+                    setRecentFiles([]);
+                    refreshFileMenuRecentList();
+                },
+                openRecentFile(fileName) {
+                    closeFileMenu();
+                    const name = normalizeCircuitFileName(fileName);
+                    if (!name) return;
+                    if (state.activeBackendTask) {
+                        alert('A backend task is running. Please wait.');
+                        return;
+                    }
+                    prepareCanvasForLoad();
+                    axios.get(`http://127.0.0.1:8080/loadJson`, { params: { fileName: name } })
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                removeRecentFile(name);
+                                refreshFileMenuRecentList();
+                                alert(res.data.msg || 'Failed to open recent file.');
+                                return;
+                            }
+                            const jsonData = res.data.data;
+                            if (!jsonData) {
+                                alert('Failed to open recent file.');
+                                return;
+                            }
+                            loadFromJSON(jsonData);
+                            state.fileName = normalizeCircuitFileName(jsonData.fileName) || name;
+                            updateFileNameDisplay();
+                            clearProbeIndex();
+                            state.simulatedData = {};
+                            state.nodeInfo = {};
+                            this.updateLoadButton();
+                            this.updatePlotButton();
+                            rememberRecentFile(state.fileName);
+                            refreshFileMenuRecentList();
+                        })
+                        .catch(error => {
+                            console.error('Open recent failed:', error);
+                            alert('Failed to open recent file. Is the backend running?');
+                        });
+                },
+                saveModelAs() {
+                    closeFileMenu();
+                    let model = this.getCircuitModel();
+                    if (model.components.length == 0 && model.wires.length == 0) {
+                        alert('No circuit diagram detected!');
+                        return;
+                    }
+                    const entered = prompt('Please enter a new file name to save as.');
+                    if (entered === null) return;
+                    const newName = normalizeCircuitFileName(entered);
+                    if (!newName) {
+                        alert('Invalid file name.');
+                        return;
+                    }
+                    if (state.fileName && newName === state.fileName) {
+                        alert('That is the current file name. Use Save to overwrite, or choose a different name.');
+                        return;
+                    }
+                    state.fileName = newName;
+                    updateFileNameDisplay();
+                    this.persistCircuitModel(model, 'Saved as "' + newName + '" successfully!');
+                },
+                persistCircuitModel(model, successMsg) {
+                    model.fileName = state.fileName;
+                    model.textCommand = state.textCommand;
+                    axios.post('http://127.0.0.1:8080/saveJson', model)
+                        .then(res => {
+                            if (res.data.code == 1) {
+                                rememberRecentFile(state.fileName);
+                                refreshFileMenuRecentList();
+                                markCircuitClean();
+                                alert(successMsg || 'Save successfully!');
+                            } else {
+                                alert(res.data.msg);
+                            }
+                        })
+                        .catch(error => {
+                            alert('Save failed.');
+                            console.error('Request failed:', error);
+                        });
                 },
                 showParamDialog() {
                     const dialog = document.getElementById('paramDialog');
@@ -4961,9 +5347,6 @@
                     document.getElementById('paramDialog').style.display = 'none';
                     const dialog = document.getElementById('paramDialog');
                     dialog.onkeydown = null; // 移除键盘监听
-                },
-                openFile() {
-                    document.getElementById('fileInput').click();
                 },
                 // exportASC() {
                 //     // 导出功能实现（预留接口）
@@ -6563,39 +6946,25 @@
                     updatePlot('canvas'); // 默认使用方案1
                 },
                 saveModel() {
-                    let model = this.getCircuitModel()//包含组件、导线、仿真参数
+                    closeFileMenu();
+                    let model = this.getCircuitModel();//包含组件、导线、仿真参数
                     if (model.components.length == 0 && model.wires.length == 0) {
-                        return
+                        alert('No circuit diagram detected!');
+                        return;
                     }
                     //保存时如果当前fileName还未有值，则让用户输入一下
                     if (state.fileName === null) {
-                        state.fileName = prompt("Please enter a file name to save.")
+                        const entered = prompt('Please enter a file name to save.');
+                        if (entered === null) return;
+                        const name = normalizeCircuitFileName(entered);
+                        if (!name) {
+                            alert('Invalid file name.');
+                            return;
+                        }
+                        state.fileName = name;
                     }
-                    //如果用户点了取消，则fileName为空，就要退出阻止执行下列操作
-                    if (state.fileName === null) {
-                        return
-                    }
-                    //更新文件名显示
-                    updateFileNameDisplay()
-
-                    model.fileName = state.fileName
-                    model.textCommand = state.textCommand
-                    axios.post('http://127.0.0.1:8080/saveJson', model)
-                        .then(res => {
-                            if (res.data.code == 1) {
-                                alert("Save successfully!")
-                                // console.log('请求成功:', res.data);
-                            }
-                            else {
-                                alert(res.data.msg);
-                            }
-
-                        })
-                        .catch(error => {
-                            alert("Save failed.")
-                            console.error('Request failed:', error);
-                        });
-
+                    updateFileNameDisplay();
+                    this.persistCircuitModel(model, 'Save successfully!');
                 },
                 // 文本命令功能
                 showTextCommandDialog: function () {
@@ -6696,11 +7065,27 @@
             };
         })();
         document.addEventListener('keydown', function (e) {
-            if (e.ctrlKey && e.key === 's') {
+            // Ctrl+S = Save; Ctrl+Alt+S = Save As
+            // (Avoid Ctrl+Shift+S — browsers often bind it to screenshot.)
+            if (e.ctrlKey && e.key.toLowerCase() === 's') {
                 e.preventDefault();
-                CircuitDesigner.saveModel()
+                if (e.altKey) {
+                    CircuitDesigner.saveModelAs();
+                } else if (!e.shiftKey) {
+                    CircuitDesigner.saveModel();
+                }
             }
         });
+        document.getElementById('fileMenu')?.addEventListener('toggle', function () {
+            if (this.open) refreshFileMenuRecentList();
+        });
+        document.addEventListener('click', function (e) {
+            const menu = document.getElementById('fileMenu');
+            if (menu && menu.open && !menu.contains(e.target)) {
+                menu.open = false;
+            }
+        });
+        refreshFileMenuRecentList();
         //将对话框组件全部启用可拖拽功能
         let dialog = document.getElementById('textCommandDialog')
         // 启用拖拽功能
