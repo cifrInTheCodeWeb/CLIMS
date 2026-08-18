@@ -61,7 +61,7 @@
             display: inline-block;
         }
 
-        .toolbar-file-menu>summary {
+        .toolbar-file-menu > summary {
             list-style: none;
             cursor: pointer;
             padding: 8px 16px;
@@ -75,17 +75,17 @@
             user-select: none;
         }
 
-        .toolbar-file-menu>summary::-webkit-details-marker {
+        .toolbar-file-menu > summary::-webkit-details-marker {
             display: none;
         }
 
-        .toolbar-file-menu>summary:hover {
+        .toolbar-file-menu > summary:hover {
             transform: translateY(-2px);
             box-shadow: 0 7px 10px rgba(0, 0, 0, 0.15);
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
-        .toolbar-file-menu[open]>summary {
+        .toolbar-file-menu[open] > summary {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
@@ -467,28 +467,24 @@
             display: none;
         }
 
-        /* 示波器窗口样式 */
-        .draggable-dialog {
+        /* 示波器窗口样式（仅作用于 .osc-dialog，避免影响 Text Command 等其它可拖拽窗） */
+        .draggable-dialog.osc-dialog {
             position: fixed;
             background: white;
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            min-width: 500px;
-            min-height: 400px;
+            width: 680px;
+            height: 500px;
+            min-width: 520px;
+            min-height: 380px;
             overflow: hidden;
             z-index: 1001;
+            resize: both;
+            flex-direction: column;
         }
 
-        .dialog-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 15px;
-            border-radius: 8px 8px 0 0;
-            cursor: move;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .draggable-dialog.osc-dialog .dialog-header {
+            flex-shrink: 0;
         }
 
         .window-controls {
@@ -513,12 +509,22 @@
             border-radius: 3px;
         }
 
+        .osc-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
         .oscilloscope-controls {
             display: flex;
-            gap: 5px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: linear-gradient(180deg, #f7f8fc 0%, #eef0f8 100%);
+            border-bottom: 1px solid #dde1f0;
+            flex-shrink: 0;
         }
 
         .oscilloscope-controls button {
@@ -526,21 +532,95 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 3px;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 13px;
+        }
+
+        .oscilloscope-controls button:hover {
+            filter: brightness(1.05);
+        }
+
+        .oscilloscope-controls button.cursor-clear {
+            background: #fff;
+            color: #5a6490;
+            border: 1px solid #c5cae0;
+        }
+
+        .osc-ctrl-sep {
+            width: 1px;
+            height: 20px;
+            background: #cfd3e6;
+            margin: 0 2px;
+        }
+
+        .osc-hint {
+            margin-left: auto;
+            font-size: 11px;
+            color: #8a90a8;
+            white-space: nowrap;
         }
 
         .oscilloscope-display {
             position: relative;
-            height: calc(100% - 40px);
-            padding: 10px;
+            flex: 1;
+            min-height: 0;
+            padding: 8px 10px 4px;
         }
 
         .oscilloscope-canvas {
             width: 100%;
             height: 100%;
-            background: white;
-            border: 1px solid #eee;
+            display: block;
+            background: linear-gradient(180deg, #fafbff 0%, #f2f4fb 100%);
+            border: 1px solid #e0e4f0;
+            border-radius: 6px;
+            cursor: crosshair;
+        }
+
+        .osc-readout {
+            position: absolute;
+            top: 16px;
+            right: 18px;
+            min-width: 120px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #d5daf0;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.15);
+            font: 12px/1.45 Consolas, "Courier New", monospace;
+            color: #3d4566;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.12s;
+            z-index: 2;
+        }
+
+        .osc-readout.visible {
+            opacity: 1;
+        }
+
+        .osc-readout .osc-ro-title {
+            color: #667eea;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .oscilloscope-statusbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            padding: 7px 12px;
+            background: #f7f8fc;
+            border-top: 1px solid #dde1f0;
+            font: 12px/1.4 Consolas, "Courier New", monospace;
+            color: #4a5168;
+            flex-shrink: 0;
+        }
+
+        .oscilloscope-statusbar .osc-cursors {
+            color: #667eea;
+            margin-left: auto;
         }
 
         /* 最小化项样式 */
@@ -861,7 +941,7 @@
 </head>
 
 <body>
-    <div id="fileNameDisplay" data-full-name="untitled"><span class="file-name-text">untitled</span></div>
+    <div id="fileNameDisplay" data-full-name="未命名"><span class="file-name-text">未命名</span></div>
     <div id="toolbar">
         <details class="toolbar-file-menu" id="fileMenu">
             <summary>File ▾</summary>
@@ -874,8 +954,7 @@
                 <div class="menu-sep"></div>
                 <div class="menu-section-label">Recent</div>
                 <div id="fileRecentList"></div>
-                <button type="button" id="fileClearRecentBtn" onclick="CircuitDesigner.clearRecentFiles()">Clear
-                    recent</button>
+                <button type="button" id="fileClearRecentBtn" onclick="CircuitDesigner.clearRecentFiles()">Clear recent</button>
             </div>
         </details>
         <button disabled onclick="CircuitDesigner.toggleGrid()" id="gridToggle">Show grid</button> <!-- 新增按钮 -->
@@ -1010,7 +1089,7 @@
     </div>
     <div id="tuneProgressDialog" class="dialog" style="display:none;">
         <div class="dialog-header">
-            <span>Tuning in progress</span>
+            <span id="tuneProgressTitle">Tuning in progress</span>
             <button class="close-btn" id="tuneProgressCloseBtn" onclick="CircuitDesigner.requestCancelTune()">×</button>
         </div>
         <div class="dialog-body" style="padding: 15px 20px;">
@@ -1128,7 +1207,9 @@
             <button class="close-btn" onclick="CircuitDesigner.closeTextCommandDialog()">×</button>
         </div>
         <div class="dialog-body">
-            <p class="hint">Please enter spice control command; Shift+Enter for a new line. Do not add a leading "."</p>
+            <p class="hint">Please enter spice control command; Shift+Enter for a new line. Do not add a leading "."
+                (e.g. write <code>param XL1=111.1 rg 50 150</code>). The <code>rg lo hi</code> tag marks a variable for Tune
+                and is stripped before LTspice.</p>
             <textarea id="textCommandInput"></textarea>
         </div>
         <div class="dialog-footer">
@@ -1159,24 +1240,32 @@
     </div>
 
     <!-- 示波器窗口模板 -->
-    <div id="oscilloscopeTemplate" class="draggable-dialog" style="display: none;">
+    <div id="oscilloscopeTemplate" class="draggable-dialog osc-dialog" style="display: none;">
         <div class="dialog-header">
-            <span class="dialog-title">scope - <span class="var-name"></span></span>
+            <span class="dialog-title">Scope — <span class="var-name"></span></span>
             <div class="window-controls">
                 <button class="minimize-btn" title="minimize">-</button>
                 <button class="close-btn" title="close">×</button>
             </div>
         </div>
-        <div class="dialog-body">
+        <div class="dialog-body osc-body">
             <div class="oscilloscope-controls">
-                <button class="zoom-in">+</button>
-                <button class="zoom-out">-</button>
-                <button class="pan-left">←</button>
-                <button class="pan-right">→</button>
-                <button class="reset-view">↺</button>
+                <button class="zoom-in" title="Zoom in (time)">+</button>
+                <button class="zoom-out" title="Zoom out (time)">−</button>
+                <button class="pan-left" title="Pan left">←</button>
+                <button class="pan-right" title="Pan right">→</button>
+                <button class="reset-view" title="Reset view">↺</button>
+                <span class="osc-ctrl-sep"></span>
+                <button type="button" class="cursor-clear" title="Clear A/B cursors">Clear cursors</button>
+                <span class="osc-hint">Wheel zoom · Drag pan · Click A · Shift+Click B · Dbl-click reset</span>
             </div>
             <div class="oscilloscope-display">
                 <canvas class="oscilloscope-canvas"></canvas>
+                <div class="osc-readout"></div>
+            </div>
+            <div class="oscilloscope-statusbar">
+                <span class="osc-stats">—</span>
+                <span class="osc-cursors"></span>
             </div>
         </div>
     </div>
@@ -3182,33 +3271,24 @@
                     );
                 }
                 ctx.restore();
-                // 新增：绘制节点信息
-                // 新增节点信息绘制部分
-                if (state.nodeInfo && state.nodeInfo[comp.name]) {
-                    const nodeData = state.nodeInfo[comp.name];
-                    const pins = getComponentPins(comp);
-                    const ctx = currentContext;
-
-                    // 保存当前绘图状态
-                    ctx.save();
-                    ctx.font = '12px Arial';
-                    ctx.fillStyle = '#90EE90'; // 浅绿色
-                    ctx.textBaseline = 'middle';
-
-                    // 绘制第一个引脚节点信息
-                    if (pins.length >= 1 && nodeData.node1) {
-                        drawPinLabel(ctx, pins[0], nodeData.node1, comp.rotation, true);
-                    }
-
-                    // 绘制第二个引脚节点信息
-                    if (pins.length >= 2 && nodeData.node2) {
-                        drawPinLabel(ctx, pins[1], nodeData.node2, comp.rotation, false);
-                    }
-
-                    ctx.restore();
-
-
-                }
+                // Debug-only: draw LTspice node names next to pins (disabled for normal use).
+                // Keep state.nodeInfo loaded — probe/oscilloscope still needs getPinName().
+                // if (state.nodeInfo && state.nodeInfo[comp.name]) {
+                //     const nodeData = state.nodeInfo[comp.name];
+                //     const pins = getComponentPins(comp);
+                //     const ctx = currentContext;
+                //     ctx.save();
+                //     ctx.font = '12px Arial';
+                //     ctx.fillStyle = '#90EE90';
+                //     ctx.textBaseline = 'middle';
+                //     if (pins.length >= 1 && nodeData.node1) {
+                //         drawPinLabel(ctx, pins[0], nodeData.node1, comp.rotation, true);
+                //     }
+                //     if (pins.length >= 2 && nodeData.node2) {
+                //         drawPinLabel(ctx, pins[1], nodeData.node2, comp.rotation, false);
+                //     }
+                //     ctx.restore();
+                // }
             }
             function drawPinLabel(ctx, pinPos, label, rotation, isFirstPin) {
                 const offset = 10; // 基础偏移量
@@ -4313,376 +4393,687 @@
                     this.canvas = null;
                     this.ctx = null;
                     this.minimizedItem = null;
-                    this.view = {
-                        xMin: 0,
-                        xMax: 1,
-                        yMin: -1,
-                        yMax: 1,
-                        scale: 1.0,
-                        offsetX: 0
-                    };
+                    this.readoutEl = null;
+                    this.statsEl = null;
+                    this.cursorsEl = null;
+                    this.view = { xMin: 0, xMax: 1, yMin: -1, yMax: 1 };
+                    this.cursorA = null; // time
+                    this.cursorB = null;
+                    this.hover = null; // { t, v, px, py }
+                    this._plotDrag = null;
+                    this._resizeObserver = null;
+                    this._onWinMove = null;
+                    this._onWinUp = null;
                     this.createWindow();
-                    // 新增窗口层级管理
                     this.zIndex = state.currentZIndex++;
                     this.windowElement.style.zIndex = this.zIndex;
-
-                    // 添加点击事件处理
-                    this.windowElement.addEventListener('mousedown', () => {
-                        this.bringToFront();
-                    });
+                    this.windowElement.addEventListener('mousedown', () => this.bringToFront());
                 }
-                // 新增方法：将窗口置顶
+
                 bringToFront() {
                     state.currentZIndex++;
                     this.zIndex = state.currentZIndex;
                     this.windowElement.style.zIndex = this.zIndex;
                 }
 
+                getMargin() {
+                    return { top: 18, right: 18, bottom: 36, left: 62 };
+                }
+
+                getPlotRect() {
+                    const m = this.getMargin();
+                    const w = this.canvas.width;
+                    const h = this.canvas.height;
+                    return {
+                        left: m.left,
+                        top: m.top,
+                        right: w - m.right,
+                        bottom: h - m.bottom,
+                        width: w - m.left - m.right,
+                        height: h - m.top - m.bottom,
+                    };
+                }
+
                 createWindow() {
-                    // 克隆模板
                     const template = document.getElementById('oscilloscopeTemplate');
                     this.windowElement = template.cloneNode(true);
-                    this.windowElement.id = ''; // 清除id
-                    this.windowElement.style.display = 'block';
+                    this.windowElement.id = '';
+                    this.windowElement.style.display = 'flex';
                     this.windowElement.querySelector('.var-name').textContent = this.varName;
 
                     this.canvas = this.windowElement.querySelector('.oscilloscope-canvas');
                     this.ctx = this.canvas.getContext('2d');
+                    this.readoutEl = this.windowElement.querySelector('.osc-readout');
+                    this.statsEl = this.windowElement.querySelector('.osc-stats');
+                    this.cursorsEl = this.windowElement.querySelector('.osc-cursors');
 
-                    // 设置初始大小
-                    this.canvas.width = 600;
-                    this.canvas.height = 400;
-
-                    // 添加事件监听
                     this.windowElement.querySelector('.minimize-btn').addEventListener('click', () => this.minimize());
                     this.windowElement.querySelector('.close-btn').addEventListener('click', () => this.close());
-
-                    // 添加控件事件
-                    this.windowElement.querySelector('.zoom-in').addEventListener('click', () => this.zoom(1.2));
+                    this.windowElement.querySelector('.zoom-in').addEventListener('click', () => this.zoom(1.25));
                     this.windowElement.querySelector('.zoom-out').addEventListener('click', () => this.zoom(0.8));
-                    this.windowElement.querySelector('.pan-left').addEventListener('click', () => this.pan(-0.1));
-                    this.windowElement.querySelector('.pan-right').addEventListener('click', () => this.pan(0.1));
+                    this.windowElement.querySelector('.pan-left').addEventListener('click', () => this.pan(-0.2));
+                    this.windowElement.querySelector('.pan-right').addEventListener('click', () => this.pan(0.2));
                     this.windowElement.querySelector('.reset-view').addEventListener('click', () => this.resetView());
+                    this.windowElement.querySelector('.cursor-clear').addEventListener('click', () => {
+                        this.cursorA = null;
+                        this.cursorB = null;
+                        this.draw();
+                    });
 
-                    // 添加拖拽功能
+                    this.bindPlotInteractions();
+                    this.bindWindowDrag();
+
+                    document.body.appendChild(this.windowElement);
+                    this.windowElement.style.left = '50%';
+                    this.windowElement.style.top = '50%';
+                    this.windowElement.style.transform = 'translate(-50%, -50%)';
+
+                    const display = this.windowElement.querySelector('.oscilloscope-display');
+                    const syncSize = () => {
+                        const rect = display.getBoundingClientRect();
+                        const w = Math.max(120, Math.floor(rect.width));
+                        const h = Math.max(100, Math.floor(rect.height));
+                        if (this.canvas.width !== w || this.canvas.height !== h) {
+                            this.canvas.width = w;
+                            this.canvas.height = h;
+                            this.draw();
+                        }
+                    };
+                    this._resizeObserver = new ResizeObserver(syncSize);
+                    this._resizeObserver.observe(display);
+                    requestAnimationFrame(syncSize);
+                }
+
+                bindWindowDrag() {
                     const header = this.windowElement.querySelector('.dialog-header');
                     let isDragging = false;
                     let startX, startY, startLeft, startTop;
 
-                    // 在Oscilloscope类的createWindow方法中修改拖拽逻辑
                     header.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('button')) return;
                         isDragging = true;
                         startX = e.clientX;
                         startY = e.clientY;
-
-                        // 获取当前窗口的实际位置（考虑transform）
                         const rect = this.windowElement.getBoundingClientRect();
                         startLeft = rect.left;
                         startTop = rect.top;
-
-                        // 清除transform属性
                         this.windowElement.style.transform = 'none';
                         this.windowElement.style.left = startLeft + 'px';
                         this.windowElement.style.top = startTop + 'px';
-
                         e.preventDefault();
                     });
 
-                    // 在mousemove事件中添加边界检查
-                    document.addEventListener('mousemove', (e) => {
+                    this._onWinMove = (e) => {
                         if (!isDragging) return;
-
-                        const dx = e.clientX - startX;
-                        const dy = e.clientY - startY;
-
-                        let newLeft = startLeft + dx;
-                        let newTop = startTop + dy;
-
-                        // 边界检查：确保窗口不会移出视口
-                        const minLeft = 0;
-                        const minTop = 0;
-                        const maxLeft = window.innerWidth - this.windowElement.offsetWidth;
-                        const maxTop = window.innerHeight - this.windowElement.offsetHeight;
-
-                        newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
-                        newTop = Math.max(minTop, Math.min(newTop, maxTop));
-
+                        let newLeft = startLeft + (e.clientX - startX);
+                        let newTop = startTop + (e.clientY - startY);
+                        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - this.windowElement.offsetWidth));
+                        newTop = Math.max(0, Math.min(newTop, window.innerHeight - this.windowElement.offsetHeight));
                         this.windowElement.style.left = newLeft + 'px';
                         this.windowElement.style.top = newTop + 'px';
-                    });
+                    };
+                    this._onWinUp = () => { isDragging = false; };
+                    document.addEventListener('mousemove', this._onWinMove);
+                    document.addEventListener('mouseup', this._onWinUp);
+                }
 
-                    document.addEventListener('mouseup', () => {
-                        if (isDragging) {
-                            isDragging = false;
-                            // 恢复样式
-                            this.windowElement.style.transition = '';
-                            document.body.style.userSelect = '';
+                bindPlotInteractions() {
+                    const canvas = this.canvas;
+
+                    canvas.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        const rect = canvas.getBoundingClientRect();
+                        const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+                        const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+                        const plot = this.getPlotRect();
+                        if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) return;
+                        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+                        if (e.ctrlKey) {
+                            this.zoomYAbout(factor, this.pixelToY(py));
+                        } else {
+                            this.zoomAbout(factor, this.pixelToX(px));
                         }
+                    }, { passive: false });
+
+                    canvas.addEventListener('mousedown', (e) => {
+                        if (e.button !== 0) return;
+                        const pos = this.eventToCanvas(e);
+                        const plot = this.getPlotRect();
+                        if (!this.inPlot(pos.x, pos.y, plot)) return;
+                        this._plotDrag = {
+                            x: e.clientX,
+                            y: e.clientY,
+                            view: { ...this.view },
+                            moved: false,
+                            shift: e.shiftKey,
+                        };
+                        e.preventDefault();
                     });
 
-                    document.body.appendChild(this.windowElement);
+                    canvas.addEventListener('mousemove', (e) => {
+                        if (this._plotDrag) return;
+                        const pos = this.eventToCanvas(e);
+                        this.updateHover(pos.x, pos.y);
+                    });
 
-                    // 初始位置居中
-                    this.windowElement.style.left = '50%';
-                    this.windowElement.style.top = '50%';
-                    this.windowElement.style.transform = 'translate(-50%, -50%)';
+                    this._onPlotMove = (e) => {
+                        if (!this._plotDrag) return;
+                        const dx = e.clientX - this._plotDrag.x;
+                        const dy = e.clientY - this._plotDrag.y;
+                        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this._plotDrag.moved = true;
+                        if (!this._plotDrag.moved) return;
+                        const plot = this.getPlotRect();
+                        const xRange = this._plotDrag.view.xMax - this._plotDrag.view.xMin;
+                        const yRange = this._plotDrag.view.yMax - this._plotDrag.view.yMin;
+                        const dtx = -dx / plot.width * xRange;
+                        const dty = dy / plot.height * yRange;
+                        this.view.xMin = this._plotDrag.view.xMin + dtx;
+                        this.view.xMax = this._plotDrag.view.xMax + dtx;
+                        this.view.yMin = this._plotDrag.view.yMin + dty;
+                        this.view.yMax = this._plotDrag.view.yMax + dty;
+                        this.hover = null;
+                        if (this.readoutEl) this.readoutEl.classList.remove('visible');
+                        this.draw();
+                    };
+                    document.addEventListener('mousemove', this._onPlotMove);
+
+                    this._onPlotUp = (e) => {
+                        if (!this._plotDrag) return;
+                        const drag = this._plotDrag;
+                        this._plotDrag = null;
+                        if (drag.moved) return;
+                        const pos = this.eventToCanvas(e);
+                        const sample = this.sampleAtPixel(pos.x);
+                        if (!sample) return;
+                        if (drag.shift) this.cursorB = sample.t;
+                        else this.cursorA = sample.t;
+                        this.draw();
+                        this.updateHover(pos.x, pos.y);
+                    };
+                    document.addEventListener('mouseup', this._onPlotUp);
+
+                    canvas.addEventListener('mouseleave', () => {
+                        if (this._plotDrag) return;
+                        this.hover = null;
+                        if (this.readoutEl) this.readoutEl.classList.remove('visible');
+                        this.draw();
+                    });
+
+                    canvas.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        this.resetView();
+                    });
+                }
+
+                eventToCanvas(e) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    return {
+                        x: (e.clientX - rect.left) * (this.canvas.width / rect.width),
+                        y: (e.clientY - rect.top) * (this.canvas.height / rect.height),
+                    };
+                }
+
+                inPlot(x, y, plot = this.getPlotRect()) {
+                    return x >= plot.left && x <= plot.right && y >= plot.top && y <= plot.bottom;
+                }
+
+                updateHover(px, py) {
+                    const plot = this.getPlotRect();
+                    if (!this.inPlot(px, py, plot)) {
+                        this.hover = null;
+                        if (this.readoutEl) this.readoutEl.classList.remove('visible');
+                        this.draw();
+                        return;
+                    }
+                    const sample = this.sampleAtPixel(px);
+                    if (!sample) {
+                        this.hover = null;
+                        if (this.readoutEl) this.readoutEl.classList.remove('visible');
+                        this.draw();
+                        return;
+                    }
+                    this.hover = {
+                        t: sample.t,
+                        v: sample.v,
+                        px: this.xToPixel(sample.t),
+                        py: this.yToPixel(sample.v),
+                    };
+                    this.draw();
+                    this.renderReadout();
+                }
+
+                sampleAtPixel(px) {
+                    if (!this.data?.time?.length) return null;
+                    const t = this.pixelToX(px);
+                    const idx = this.nearestTimeIndex(t);
+                    if (idx < 0) return null;
+                    return {
+                        t: this.data.time[idx],
+                        v: this.data[this.varName][idx],
+                        i: idx,
+                    };
+                }
+
+                nearestTimeIndex(t) {
+                    const time = this.data.time;
+                    let lo = 0, hi = time.length - 1;
+                    if (t <= time[0]) return 0;
+                    if (t >= time[hi]) return hi;
+                    while (hi - lo > 1) {
+                        const mid = (lo + hi) >> 1;
+                        if (time[mid] <= t) lo = mid;
+                        else hi = mid;
+                    }
+                    return (t - time[lo] <= time[hi] - t) ? lo : hi;
+                }
+
+                valueAtTime(t) {
+                    const idx = this.nearestTimeIndex(t);
+                    return idx < 0 ? null : this.data[this.varName][idx];
                 }
 
                 setData(data) {
                     this.data = data;
+                    this.cursorA = null;
+                    this.cursorB = null;
+                    this.hover = null;
                     this.autoScale();
                     this.draw();
                 }
 
                 autoScale() {
-                    if (!this.data || !this.data.time || !this.data[this.varName]) return;
-
+                    if (!this.data?.time?.length || !this.data[this.varName]) return;
                     const time = this.data.time;
                     const values = this.data[this.varName];
-
-                    // 确保X轴从0开始
                     this.view.xMin = Math.min(...time);
                     this.view.xMax = Math.max(...time);
-
-                    // // 确保Y轴包含零点
-                    // const minValue = Math.min(...values);
-                    // const maxValue = Math.max(...values);
-
-                    // this.view.yMin = Math.min(minValue, 0);
-                    // this.view.yMax = Math.max(maxValue, 0);
                     this.view.yMin = Math.min(...values);
                     this.view.yMax = Math.max(...values);
-
-                    // 添加边距
-                    const xRange = this.view.xMax - this.view.xMin;
-                    const yRange = this.view.yMax - this.view.yMin;
-
-                    // 左边不留空白（因为0时刻就是起点），只增加右侧边距
-                    this.view.xMax += xRange * 0.05;
-                    this.view.yMin -= yRange * 0.1;
-                    this.view.yMax += yRange * 0.1;
-
-                    // 特殊处理：防止y轴范围过小
-                    if (Math.abs(this.view.yMax - this.view.yMin) < 1e-10) {
+                    const xRange = this.view.xMax - this.view.xMin || 1;
+                    const yRange = this.view.yMax - this.view.yMin || 1;
+                    this.view.xMax += xRange * 0.03;
+                    this.view.yMin -= yRange * 0.08;
+                    this.view.yMax += yRange * 0.08;
+                    if (Math.abs(this.view.yMax - this.view.yMin) < 1e-12) {
                         this.view.yMin -= 0.1;
                         this.view.yMax += 0.1;
                     }
                 }
 
                 draw() {
-                    if (!this.data || !this.data.time || !this.data[this.varName]) return;
-
+                    if (!this.ctx) return;
                     const ctx = this.ctx;
                     const width = this.canvas.width;
                     const height = this.canvas.height;
-                    const time = this.data.time;
-                    const values = this.data[this.varName];
-
-                    // 清除画布
                     ctx.clearRect(0, 0, width, height);
 
-                    // 绘制网格和坐标轴
+                    if (!this.data?.time?.length || !this.data[this.varName]) {
+                        this.updateStatusBar();
+                        return;
+                    }
+
                     this.drawGrid();
-
-                    // 绘制曲线
-                    ctx.beginPath();
-                    time.forEach((t, i) => {
-                        const x = this.xToPixel(t);
-                        const y = this.yToPixel(values[i]);
-
-                        if (i === 0) {
-                            ctx.moveTo(x, y);
-                        } else {
-                            ctx.lineTo(x, y);
-                        }
-                    });
-
-                    ctx.strokeStyle = '#3498db';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
+                    this.drawWaveform();
+                    this.drawCursors();
+                    this.drawHoverMarker();
+                    this.updateStatusBar();
                 }
 
                 drawGrid() {
                     const ctx = this.ctx;
-                    const width = this.canvas.width;
-                    const height = this.canvas.height;
-                    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-
-                    // 计算X轴刻度
+                    const plot = this.getPlotRect();
                     const xRange = this.view.xMax - this.view.xMin;
-                    const xTickInterval = this.calculateTickInterval(xRange);
-                    const xTicks = this.generateTicks(this.view.xMin, this.view.xMax, xTickInterval);
-
-                    // 计算Y轴刻度
                     const yRange = this.view.yMax - this.view.yMin;
-                    const yTickInterval = this.calculateTickInterval(yRange);
-                    const yTicks = this.generateTicks(this.view.yMin, this.view.yMax, yTickInterval);
+                    if (xRange <= 0 || yRange <= 0) return;
 
-                    // 绘制网格线
-                    ctx.strokeStyle = '#f0f0f0';
+                    const xTicks = this.generateTicks(this.view.xMin, this.view.xMax, this.calculateTickInterval(xRange));
+                    const yTicks = this.generateTicks(this.view.yMin, this.view.yMax, this.calculateTickInterval(yRange));
+
+                    // plot background wash
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                    ctx.fillRect(plot.left, plot.top, plot.width, plot.height);
+
+                    ctx.strokeStyle = '#e4e8f4';
                     ctx.lineWidth = 1;
-
-                    // X轴网格
                     xTicks.forEach(tick => {
-                        const x = margin.left + (tick - this.view.xMin) / xRange * (width - margin.left - margin.right);
+                        const x = this.xToPixel(tick);
                         ctx.beginPath();
-                        ctx.moveTo(x, margin.top);
-                        ctx.lineTo(x, height - margin.bottom);
+                        ctx.moveTo(x, plot.top);
+                        ctx.lineTo(x, plot.bottom);
                         ctx.stroke();
                     });
-
-                    // Y轴网格
                     yTicks.forEach(tick => {
-                        const y = height - margin.bottom - (tick - this.view.yMin) / yRange * (height - margin.top - margin.bottom);
+                        const y = this.yToPixel(tick);
                         ctx.beginPath();
-                        ctx.moveTo(margin.left, y);
-                        ctx.lineTo(width - margin.right, y);
+                        ctx.moveTo(plot.left, y);
+                        ctx.lineTo(plot.right, y);
                         ctx.stroke();
                     });
 
-                    // 绘制坐标轴
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 1;
+                    // zero line if in view
+                    if (this.view.yMin < 0 && this.view.yMax > 0) {
+                        ctx.strokeStyle = 'rgba(118, 75, 162, 0.35)';
+                        ctx.lineWidth = 1.25;
+                        const y0 = this.yToPixel(0);
+                        ctx.beginPath();
+                        ctx.moveTo(plot.left, y0);
+                        ctx.lineTo(plot.right, y0);
+                        ctx.stroke();
+                    }
 
-                    // X轴
+                    ctx.strokeStyle = '#9aa3c7';
+                    ctx.lineWidth = 1.25;
                     ctx.beginPath();
-                    ctx.moveTo(margin.left, height - margin.bottom);
-                    ctx.lineTo(width - margin.right, height - margin.bottom);
+                    ctx.moveTo(plot.left, plot.bottom);
+                    ctx.lineTo(plot.right, plot.bottom);
+                    ctx.moveTo(plot.left, plot.top);
+                    ctx.lineTo(plot.left, plot.bottom);
                     ctx.stroke();
 
-                    // Y轴
-                    ctx.beginPath();
-                    ctx.moveTo(margin.left, margin.top);
-                    ctx.lineTo(margin.left, height - margin.bottom);
-                    ctx.stroke();
-
-                    // 绘制刻度标签
-                    ctx.fillStyle = '#333';
-                    ctx.font = '12px Arial';
+                    ctx.fillStyle = '#5a6380';
+                    ctx.font = '11px Segoe UI, Arial, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
-
-                    // X轴标签
                     xTicks.forEach(tick => {
-                        const x = margin.left + (tick - this.view.xMin) / xRange * (width - margin.left - margin.right);
-                        const label = this.formatNumber(tick, xRange, 's');
-                        ctx.fillText(label, x, height - margin.bottom + 5);
+                        ctx.fillText(this.formatNumber(tick, xRange, 's'), this.xToPixel(tick), plot.bottom + 6);
                     });
-
-                    // Y轴标签
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'middle';
                     yTicks.forEach(tick => {
-                        const y = height - margin.bottom - (tick - this.view.yMin) / yRange * (height - margin.top - margin.bottom);
-                        const label = this.formatNumber(tick, yRange, '');
-                        ctx.fillText(label, margin.left - 5, y);
+                        ctx.fillText(this.formatNumber(tick, yRange, ''), plot.left - 6, this.yToPixel(tick));
                     });
 
-                    // 绘制坐标轴标题
-                    // ctx.textAlign = 'center';
-                    // ctx.fillText('时间 (' + this.getUnitPrefix(xRange, 's') + ')', width / 2, height - 10);
+                    // axis unit hints
+                    ctx.save();
+                    ctx.fillStyle = '#8a90a8';
+                    ctx.font = '10px Segoe UI, Arial, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('t', plot.right, this.canvas.height - 4);
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(this.yUnitHint(), 4, plot.top);
+                    ctx.restore();
+                }
 
-                    // ctx.save();
-                    // ctx.translate(10, height / 2);
-                    // ctx.rotate(-Math.PI / 2);
-                    // ctx.textAlign = 'center';
-                    // ctx.fillText(this.varName, 0, 0);
-                    // ctx.restore();
+                yUnitHint() {
+                    const name = (this.varName || '').toLowerCase();
+                    if (name.startsWith('i(') || name.startsWith('i')) return 'I';
+                    return 'V';
+                }
+
+                drawWaveform() {
+                    const ctx = this.ctx;
+                    const plot = this.getPlotRect();
+                    const time = this.data.time;
+                    const values = this.data[this.varName];
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(plot.left, plot.top, plot.width, plot.height);
+                    ctx.clip();
+
+                    ctx.beginPath();
+                    let started = false;
+                    for (let i = 0; i < time.length; i++) {
+                        const x = this.xToPixel(time[i]);
+                        const y = this.yToPixel(values[i]);
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.strokeStyle = '#667eea';
+                    ctx.lineWidth = 2;
+                    ctx.lineJoin = 'round';
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                drawCursors() {
+                    const ctx = this.ctx;
+                    const plot = this.getPlotRect();
+                    const drawOne = (t, label, color) => {
+                        if (t == null || !Number.isFinite(t)) return;
+                        const x = this.xToPixel(t);
+                        if (x < plot.left || x > plot.right) return;
+                        ctx.save();
+                        ctx.strokeStyle = color;
+                        ctx.fillStyle = color;
+                        ctx.lineWidth = 1.25;
+                        ctx.setLineDash([4, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(x, plot.top);
+                        ctx.lineTo(x, plot.bottom);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        const v = this.valueAtTime(t);
+                        if (v != null) {
+                            const y = this.yToPixel(v);
+                            ctx.beginPath();
+                            ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.font = 'bold 10px Segoe UI, Arial, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(label, x, plot.top - 2);
+                        ctx.restore();
+                    };
+                    drawOne(this.cursorA, 'A', '#667eea');
+                    drawOne(this.cursorB, 'B', '#764ba2');
+                }
+
+                drawHoverMarker() {
+                    if (!this.hover) return;
+                    const ctx = this.ctx;
+                    const plot = this.getPlotRect();
+                    const { px, py } = this.hover;
+                    if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) return;
+
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(102, 126, 234, 0.45)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(px, plot.top);
+                    ctx.lineTo(px, plot.bottom);
+                    ctx.moveTo(plot.left, py);
+                    ctx.lineTo(plot.right, py);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = '#667eea';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                renderReadout() {
+                    if (!this.readoutEl || !this.hover) return;
+                    const xRange = Math.abs(this.hover.t) || (this.view.xMax - this.view.xMin) || 1;
+                    const yRange = Math.abs(this.hover.v) || (this.view.yMax - this.view.yMin) || 1;
+                    const tLabel = this.formatNumber(this.hover.t, xRange, 's');
+                    const vLabel = this.formatNumber(this.hover.v, yRange, '');
+                    const unit = this.yUnitHint();
+                    this.readoutEl.innerHTML =
+                        `<div class="osc-ro-title">${this.varName}</div>` +
+                        `<div>t = ${tLabel}</div>` +
+                        `<div>${unit} = ${vLabel}</div>`;
+                    this.readoutEl.classList.add('visible');
+                }
+
+                updateStatusBar() {
+                    if (!this.statsEl) return;
+                    const values = this.data?.[this.varName];
+                    if (!values?.length) {
+                        this.statsEl.textContent = 'No data';
+                        if (this.cursorsEl) this.cursorsEl.textContent = '';
+                        return;
+                    }
+                    let min = Infinity, max = -Infinity, sum = 0;
+                    for (let i = 0; i < values.length; i++) {
+                        const v = values[i];
+                        if (v < min) min = v;
+                        if (v > max) max = v;
+                        sum += v;
+                    }
+                    const mean = sum / values.length;
+                    const ySpan = Math.max(Math.abs(max), Math.abs(min), max - min, 1e-12);
+                    this.statsEl.textContent =
+                        `Pk-pk ${this.formatNumber(max - min, ySpan, '')}  ·  Max ${this.formatNumber(max, ySpan, '')}` +
+                        `  ·  Min ${this.formatNumber(min, ySpan, '')}  ·  Mean ${this.formatNumber(mean, ySpan, '')}`;
+
+                    if (!this.cursorsEl) return;
+                    if (this.cursorA == null && this.cursorB == null) {
+                        this.cursorsEl.textContent = '';
+                        return;
+                    }
+                    const parts = [];
+                    const xHint = Math.abs(this.cursorA ?? this.cursorB) || (this.view.xMax - this.view.xMin) || 1;
+                    if (this.cursorA != null) {
+                        const va = this.valueAtTime(this.cursorA);
+                        parts.push(`A: t=${this.formatNumber(this.cursorA, xHint, 's')}` +
+                            (va == null ? '' : `, ${this.yUnitHint()}=${this.formatNumber(va, ySpan, '')}`));
+                    }
+                    if (this.cursorB != null) {
+                        const vb = this.valueAtTime(this.cursorB);
+                        parts.push(`B: t=${this.formatNumber(this.cursorB, xHint, 's')}` +
+                            (vb == null ? '' : `, ${this.yUnitHint()}=${this.formatNumber(vb, ySpan, '')}`));
+                    }
+                    if (this.cursorA != null && this.cursorB != null) {
+                        const dt = Math.abs(this.cursorB - this.cursorA);
+                        const va = this.valueAtTime(this.cursorA);
+                        const vb = this.valueAtTime(this.cursorB);
+                        const dv = (va != null && vb != null) ? (vb - va) : null;
+                        parts.push(`Δt=${this.formatNumber(dt, dt || xHint, 's')}`);
+                        if (dv != null) parts.push(`Δ${this.yUnitHint()}=${this.formatNumber(dv, ySpan, '')}`);
+                        if (dt > 0) parts.push(`~f=${this.formatNumber(1 / dt, 1 / dt, 'Hz')}`);
+                    }
+                    this.cursorsEl.textContent = parts.join('  ·  ');
                 }
 
                 calculateTickInterval(range) {
-                    // 根据范围动态调整目标刻度数
-                    const targetCount = range > 100 ? 12 : 8; // 大范围更多刻度
-
-                    const roughInterval = range / targetCount;
+                    const absRange = Math.abs(range);
+                    if (!Number.isFinite(absRange) || absRange < 1e-30) return 1;
+                    const targetCount = absRange > 100 ? 12 : 8;
+                    const roughInterval = absRange / targetCount;
                     const magnitude = Math.pow(10, Math.floor(Math.log10(roughInterval)));
                     let interval = magnitude;
-
-                    // 更精细的刻度选择
-                    if (roughInterval / magnitude > 7.5) {
-                        interval = magnitude * 10;
-                    } else if (roughInterval / magnitude > 5) {
-                        interval = magnitude * 5;
-                    } else if (roughInterval / magnitude > 2.5) {
-                        interval = magnitude * 2.5;
-                    } else if (roughInterval / magnitude > 1.5) {
-                        interval = magnitude * 2;
-                    } else if (roughInterval / magnitude > 0.75) {
-                        interval = magnitude;
-                    } else {
-                        interval = magnitude * 0.5;
-                    }
-
+                    if (roughInterval / magnitude > 7.5) interval = magnitude * 10;
+                    else if (roughInterval / magnitude > 5) interval = magnitude * 5;
+                    else if (roughInterval / magnitude > 2.5) interval = magnitude * 2.5;
+                    else if (roughInterval / magnitude > 1.5) interval = magnitude * 2;
+                    else if (roughInterval / magnitude > 0.75) interval = magnitude;
+                    else interval = magnitude * 0.5;
                     return interval;
                 }
 
-
                 generateTicks(min, max, interval) {
                     const ticks = [];
+                    if (!Number.isFinite(interval) || interval <= 0) return ticks;
                     let tick = Math.ceil(min / interval) * interval;
-
-                    while (tick <= max) {
+                    const guard = 100;
+                    let n = 0;
+                    while (tick <= max + interval * 1e-9 && n++ < guard) {
                         ticks.push(tick);
                         tick += interval;
                     }
-
                     return ticks;
                 }
 
                 formatNumber(value, range, unit) {
-                    // 根据范围自动调整单位
-                    const prefix = this.getUnitPrefix(range, unit);
+                    const prefix = this.getUnitPrefix(Math.abs(range) || Math.abs(value) || 1, unit);
                     const scaledValue = value / prefix.scale;
-                    return scaledValue.toPrecision(4) + prefix.symbol;
+                    let text;
+                    const abs = Math.abs(scaledValue);
+                    if (abs === 0) text = '0';
+                    else if (abs >= 100) text = scaledValue.toFixed(1);
+                    else if (abs >= 10) text = scaledValue.toFixed(2);
+                    else if (abs >= 1) text = scaledValue.toFixed(3);
+                    else text = Number(scaledValue.toPrecision(3)).toString();
+                    text = this.trimTrailingZeros(text);
+                    return text + prefix.symbol;
+                }
+
+                /** Drop useless trailing zeros: 94.00 → 94, 0.200 → 0.2 */
+                trimTrailingZeros(text) {
+                    if (!text || /[eE]/.test(text)) return text;
+                    if (!text.includes('.')) return text;
+                    return text.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
                 }
 
                 getUnitPrefix(range, baseUnit) {
-                    // 自动选择合适的前缀
-                    if (range >= 1e9) {
-                        return { symbol: 'G' + baseUnit, scale: 1e9 };
-                    } else if (range >= 1e6) {
-                        return { symbol: 'M' + baseUnit, scale: 1e6 };
-                    } else if (range >= 1e3) {
-                        return { symbol: 'k' + baseUnit, scale: 1e3 };
-                    } else if (range >= 1) {
-                        return { symbol: baseUnit, scale: 1 };
-                    } else if (range >= 1e-3) {
-                        return { symbol: 'm' + baseUnit, scale: 1e-3 };
-                    } else if (range >= 1e-6) {
-                        return { symbol: 'μ' + baseUnit, scale: 1e-6 };
-                    } else if (range >= 1e-9) {
-                        return { symbol: 'n' + baseUnit, scale: 1e-9 };
-                    } else {
-                        return { symbol: baseUnit, scale: 1 };
-                    }
+                    if (range >= 1e9) return { symbol: 'G' + baseUnit, scale: 1e9 };
+                    if (range >= 1e6) return { symbol: 'M' + baseUnit, scale: 1e6 };
+                    if (range >= 1e3) return { symbol: 'k' + baseUnit, scale: 1e3 };
+                    if (range >= 1) return { symbol: baseUnit, scale: 1 };
+                    if (range >= 1e-3) return { symbol: 'm' + baseUnit, scale: 1e-3 };
+                    if (range >= 1e-6) return { symbol: 'μ' + baseUnit, scale: 1e-6 };
+                    if (range >= 1e-9) return { symbol: 'n' + baseUnit, scale: 1e-9 };
+                    return { symbol: baseUnit, scale: 1 };
                 }
 
                 xToPixel(x) {
-                    const width = this.canvas.width;
-                    const margin = { left: 50, right: 30 };
-                    return margin.left + (x - this.view.xMin) / (this.view.xMax - this.view.xMin) * (width - margin.left - margin.right);
+                    const plot = this.getPlotRect();
+                    return plot.left + (x - this.view.xMin) / (this.view.xMax - this.view.xMin) * plot.width;
                 }
 
                 yToPixel(y) {
-                    const height = this.canvas.height;
-                    const margin = { top: 20, bottom: 40 };
-                    return height - margin.bottom - (y - this.view.yMin) / (this.view.yMax - this.view.yMin) * (height - margin.top - margin.bottom);
+                    const plot = this.getPlotRect();
+                    return plot.bottom - (y - this.view.yMin) / (this.view.yMax - this.view.yMin) * plot.height;
+                }
+
+                pixelToX(px) {
+                    const plot = this.getPlotRect();
+                    return this.view.xMin + (px - plot.left) / plot.width * (this.view.xMax - this.view.xMin);
+                }
+
+                pixelToY(py) {
+                    const plot = this.getPlotRect();
+                    return this.view.yMin + (plot.bottom - py) / plot.height * (this.view.yMax - this.view.yMin);
                 }
 
                 zoom(factor) {
-                    this.view.scale *= factor;
+                    const mid = (this.view.xMin + this.view.xMax) / 2;
+                    this.zoomAbout(factor, mid);
+                }
+
+                zoomAbout(factor, centerT) {
+                    const xRange = this.view.xMax - this.view.xMin;
+                    if (xRange <= 0) return;
+                    const newRange = Math.max(xRange / factor, 1e-18);
+                    const ratio = (centerT - this.view.xMin) / xRange;
+                    this.view.xMin = centerT - newRange * ratio;
+                    this.view.xMax = this.view.xMin + newRange;
+                    this.draw();
+                }
+
+                zoomYAbout(factor, centerY) {
+                    const yRange = this.view.yMax - this.view.yMin;
+                    if (yRange <= 0) return;
+                    const newRange = Math.max(yRange / factor, 1e-18);
+                    const ratio = (centerY - this.view.yMin) / yRange;
+                    this.view.yMin = centerY - newRange * ratio;
+                    this.view.yMax = this.view.yMin + newRange;
                     this.draw();
                 }
 
                 pan(direction) {
                     const range = this.view.xMax - this.view.xMin;
-                    this.view.offsetX += direction * range * 0.2;
+                    const dx = direction * range;
+                    this.view.xMin += dx;
+                    this.view.xMax += dx;
                     this.draw();
                 }
 
                 resetView() {
-                    this.view.scale = 1.0;
-                    this.view.offsetX = 0;
                     this.autoScale();
                     this.draw();
                 }
@@ -4690,46 +5081,40 @@
                 minimize() {
                     this.isMinimized = true;
                     this.windowElement.style.display = 'none';
-
-                    // 创建最小化项
                     this.minimizedItem = document.createElement('div');
                     this.minimizedItem.className = 'minimized-item';
                     this.minimizedItem.textContent = this.varName;
                     this.minimizedItem.addEventListener('click', () => this.restore());
-
-                    // 添加到最小化面板
                     const panel = document.getElementById('minimizedPanel');
                     panel.insertBefore(this.minimizedItem, panel.firstChild);
-
-                    // 更新状态
                     state.minimizedOscilloscopes.push(this);
                     state.oscilloscopes = state.oscilloscopes.filter(o => o !== this);
                 }
 
                 restore() {
                     this.isMinimized = false;
-                    this.windowElement.style.display = 'block';
-
+                    this.windowElement.style.display = 'flex';
                     if (this.minimizedItem) {
                         this.minimizedItem.remove();
                         this.minimizedItem = null;
                     }
-
-                    // 更新状态
                     state.oscilloscopes.push(this);
                     state.minimizedOscilloscopes = state.minimizedOscilloscopes.filter(o => o !== this);
+                    this.bringToFront();
+                    this.draw();
                 }
 
                 close() {
-                    if (this.windowElement) {
-                        this.windowElement.remove();
+                    if (this._resizeObserver) {
+                        this._resizeObserver.disconnect();
+                        this._resizeObserver = null;
                     }
-
-                    if (this.minimizedItem) {
-                        this.minimizedItem.remove();
-                    }
-
-                    // 从所有状态中移除
+                    if (this._onWinMove) document.removeEventListener('mousemove', this._onWinMove);
+                    if (this._onWinUp) document.removeEventListener('mouseup', this._onWinUp);
+                    if (this._onPlotMove) document.removeEventListener('mousemove', this._onPlotMove);
+                    if (this._onPlotUp) document.removeEventListener('mouseup', this._onPlotUp);
+                    if (this.windowElement) this.windowElement.remove();
+                    if (this.minimizedItem) this.minimizedItem.remove();
                     state.oscilloscopes = state.oscilloscopes.filter(o => o !== this);
                     state.minimizedOscilloscopes = state.minimizedOscilloscopes.filter(o => o !== this);
                 }
@@ -5025,7 +5410,7 @@
                 const display = document.getElementById('fileNameDisplay');
                 if (!display) return;
 
-                const label = state.fileName || 'untitled';
+                const label = state.fileName || '未命名';
                 let textEl = display.querySelector('.file-name-text');
                 if (!textEl) {
                     textEl = document.createElement('span');
@@ -5142,6 +5527,7 @@
                 }),
 
                 toggleGrid, // 新增方法
+                refreshFileMenuRecentList,
                 newProject() {
                     closeFileMenu();
                     const existingCanvas = document.querySelector('.canvas-window');
@@ -5708,6 +6094,8 @@
                 },
 
                 showTuneProgressDialog() {
+                    const titleEl = document.getElementById('tuneProgressTitle');
+                    if (titleEl) titleEl.textContent = 'Tuning in progress';
                     document.getElementById('tuneProgressDialog').style.display = 'block';
                     this.updateTuneProgressUI({
                         phase: 'INIT',
@@ -5721,6 +6109,13 @@
                 closeTuneProgressDialog() {
                     document.getElementById('tuneProgressDialog').style.display = 'none';
                     this.destroyTuneCurveFitCharts();
+                    this.hideTuneCurveFit();
+                    // Live distribution chart lives in this dialog; free it on manual close.
+                    if (state.tuneVizLiveChart) {
+                        state.tuneVizLiveChart.destroy();
+                        state.tuneVizLiveChart = null;
+                    }
+                    this.hideTuneVizLive();
                 },
 
                 updateTuneProgressUI(status) {
@@ -5783,15 +6178,38 @@
                     stopTunePolling();
                     clearTuneJobSession();
                     endBackendTask('tune');
-                    this.closeTuneProgressDialog();
-                    this.destroyTuneVizCharts();
-                    this.destroyTuneCurveFitCharts();
-                    this.hideTuneVizLive();
-                    this.hideTuneCurveFit();
 
+                    // Keep progress dialog open so final curve-fit (and live distribution) stay visible.
+                    // Parameter-distribution history opens as a separate, independent dialog.
+                    const titleEl = document.getElementById('tuneProgressTitle');
                     if (!status) {
+                        if (titleEl) titleEl.textContent = 'Tuning ended';
                         alert(errorMsg || 'Tuning status unavailable.');
                         return;
+                    }
+
+                    if (titleEl) {
+                        if (status.status === 'COMPLETED') titleEl.textContent = 'Tuning finished';
+                        else if (status.status === 'CANCELLED') titleEl.textContent = 'Tuning cancelled';
+                        else if (status.status === 'FAILED') titleEl.textContent = 'Tuning failed';
+                        else titleEl.textContent = 'Tuning ended';
+                    }
+                    // Refresh message/percent one last time with terminal payload.
+                    this.updateTuneProgressUI(status);
+                    if (status.percent == null || status.percent < 100) {
+                        const barEl = document.getElementById('tuneProgressBar');
+                        const percentEl = document.getElementById('tuneProgressPercent');
+                        if (status.status === 'COMPLETED' || status.status === 'CANCELLED') {
+                            if (barEl) barEl.style.width = '100%';
+                            if (percentEl) percentEl.textContent = '100%';
+                        }
+                    }
+                    if (status.message && document.getElementById('tuneProgressMessage')) {
+                        // Prefer backend finish message when present (folder / cancel reason).
+                        const msgEl = document.getElementById('tuneProgressMessage');
+                        if (status.status !== 'RUNNING' && status.message) {
+                            msgEl.textContent = status.message;
+                        }
                     }
 
                     const showFinishAlert = () => {
@@ -5828,6 +6246,7 @@
 
                 requestCancelTune() {
                     const jobId = state.tuneJobId || sessionStorage.getItem(TUNE_JOB_STORAGE_KEY);
+                    // After finish, session is cleared — × only closes the (still-open) progress dialog.
                     if (!jobId) {
                         this.closeTuneProgressDialog();
                         return;
@@ -5943,10 +6362,11 @@
 
                 buildTuneVizCategoryXScale(generationCount) {
                     const shouldRotate = generationCount > 24;
+                    // offset:true leaves half-category padding so first/last Range+IQR bars are not clipped
                     return {
-                        offset: false,
+                        offset: true,
                         grid: {
-                            offset: false,
+                            offset: true,
                             drawOnChartArea: true,
                         },
                         ticks: {
@@ -5986,8 +6406,8 @@
                 buildTuneVizChartLayout(generationCount) {
                     return {
                         padding: {
-                            left: 2,
-                            right: 8,
+                            left: 6,
+                            right: 10,
                             bottom: generationCount > 24 ? 4 : 0,
                         },
                     };
@@ -6091,7 +6511,7 @@
                 },
 
                 renderTuneTrendLineChart(canvasId, chartStateKey, generations, values,
-                    yTitle, lineColor, fillColor, compactYAxis) {
+                                         yTitle, lineColor, fillColor, compactYAxis) {
                     const canvas = document.getElementById(canvasId);
                     if (!canvas || !generations || generations.length === 0) return;
                     if (state[chartStateKey]) {
@@ -7025,41 +7445,52 @@
                     console.log("保存的文本命令：", state.textCommand);
                 },
 
-                // 使对话框可拖拽
+                // 使对话框可拖拽（fixed + 居中 transform 时必须用 getBoundingClientRect）
                 makeDialogDraggable: function (dialog) {
+                    if (!dialog) return;
                     const header = dialog.querySelector('.dialog-header');
-                    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                    if (!header || header.dataset.dragBound === '1') return;
+                    header.dataset.dragBound = '1';
 
-                    header.onmousedown = dragMouseDown;
-                    //dialog.onmousedown = dragMouseDown;
+                    let dragging = false;
+                    let startX = 0, startY = 0, startLeft = 0, startTop = 0;
 
-                    function dragMouseDown(e) {
-                        e = e || window.event;
+                    const onMove = (e) => {
+                        if (!dragging) return;
                         e.preventDefault();
-                        // 获取鼠标初始位置
-                        pos3 = e.clientX;
-                        pos4 = e.clientY;
-                        document.onmouseup = closeDragElement;
-                        document.onmousemove = elementDrag;
-                    }
+                        let newLeft = startLeft + (e.clientX - startX);
+                        let newTop = startTop + (e.clientY - startY);
+                        const maxLeft = Math.max(0, window.innerWidth - dialog.offsetWidth);
+                        const maxTop = Math.max(0, window.innerHeight - dialog.offsetHeight);
+                        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                        newTop = Math.max(0, Math.min(newTop, maxTop));
+                        dialog.style.left = newLeft + 'px';
+                        dialog.style.top = newTop + 'px';
+                    };
 
-                    function elementDrag(e) {
-                        e = e || window.event;
+                    const onUp = () => {
+                        if (!dragging) return;
+                        dragging = false;
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                    };
+
+                    header.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('button')) return;
                         e.preventDefault();
-                        // 计算新位置
-                        pos1 = pos3 - e.clientX;
-                        pos2 = pos4 - e.clientY;
-                        pos3 = e.clientX;
-                        pos4 = e.clientY;
-                        // 设置对话框的新位置
-                        dialog.style.top = (dialog.offsetTop - pos2) + "px";
-                        dialog.style.left = (dialog.offsetLeft - pos1) + "px";
-                    }
-
-                    function closeDragElement() {
-                        document.onmouseup = null;
-                        document.onmousemove = null;
-                    }
+                        dragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        const rect = dialog.getBoundingClientRect();
+                        startLeft = rect.left;
+                        startTop = rect.top;
+                        // 去掉居中 transform，改为像素定位，否则拖不动/会乱跳
+                        dialog.style.transform = 'none';
+                        dialog.style.left = startLeft + 'px';
+                        dialog.style.top = startTop + 'px';
+                        document.addEventListener('mousemove', onMove);
+                        document.addEventListener('mouseup', onUp);
+                    });
                 }
 
             };
@@ -7077,7 +7508,7 @@
             }
         });
         document.getElementById('fileMenu')?.addEventListener('toggle', function () {
-            if (this.open) refreshFileMenuRecentList();
+            if (this.open) CircuitDesigner.refreshFileMenuRecentList();
         });
         document.addEventListener('click', function (e) {
             const menu = document.getElementById('fileMenu');
@@ -7085,7 +7516,7 @@
                 menu.open = false;
             }
         });
-        refreshFileMenuRecentList();
+        CircuitDesigner.refreshFileMenuRecentList();
         //将对话框组件全部启用可拖拽功能
         let dialog = document.getElementById('textCommandDialog')
         // 启用拖拽功能
