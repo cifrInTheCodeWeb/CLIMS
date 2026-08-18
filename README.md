@@ -1,0 +1,1 @@
+Updated on August 18, 2026: there is no need to install or configure LTspice manually; the version of the installation package can be found at: https://github.com/cifrInTheCodeWeb/CLIMS/tree/feature-no-need-install-LTspice
