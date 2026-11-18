@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <title>Parameter optimizer of cardiovascular lumped parameter model</title>
     <style>
         body {
@@ -61,7 +62,7 @@
             display: inline-block;
         }
 
-        .toolbar-file-menu > summary {
+        .toolbar-file-menu>summary {
             list-style: none;
             cursor: pointer;
             padding: 8px 16px;
@@ -75,17 +76,17 @@
             user-select: none;
         }
 
-        .toolbar-file-menu > summary::-webkit-details-marker {
+        .toolbar-file-menu>summary::-webkit-details-marker {
             display: none;
         }
 
-        .toolbar-file-menu > summary:hover {
+        .toolbar-file-menu>summary:hover {
             transform: translateY(-2px);
             box-shadow: 0 7px 10px rgba(0, 0, 0, 0.15);
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
-        .toolbar-file-menu[open] > summary {
+        .toolbar-file-menu[open]>summary {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
@@ -810,6 +811,8 @@
         #tuneProgressDialog {
             width: 780px;
             max-width: 94vw;
+            max-height: 92vh;
+            overflow: auto;
         }
 
         #tuneVizHistoryDialog {
@@ -904,7 +907,8 @@
         }
 
         .tune-curve-fit-list {
-            max-height: 360px;
+            /* ~2 full overlay charts (260px each + titles/padding); scroll for 3+ */
+            max-height: min(680px, 58vh);
             overflow-y: auto;
             margin-top: 8px;
             padding-right: 4px;
@@ -914,8 +918,12 @@
             border: 1px solid #e9ecef;
             border-radius: 8px;
             background: #fff;
-            padding: 10px 12px 8px;
-            margin-bottom: 10px;
+            padding: 10px 12px 10px;
+            margin-bottom: 12px;
+        }
+
+        .tune-curve-fit-card:last-child {
+            margin-bottom: 0;
         }
 
         .tune-curve-fit-title {
@@ -932,7 +940,8 @@
 
         .tune-curve-fit-chart {
             position: relative;
-            height: 132px;
+            height: 260px;
+            min-height: 220px;
         }
     </style>
     <script src="node_modules/axios/dist/axios.min.js"></script>
@@ -954,13 +963,16 @@
                 <div class="menu-sep"></div>
                 <div class="menu-section-label">Recent</div>
                 <div id="fileRecentList"></div>
-                <button type="button" id="fileClearRecentBtn" onclick="CircuitDesigner.clearRecentFiles()">Clear recent</button>
+                <button type="button" id="fileClearRecentBtn" onclick="CircuitDesigner.clearRecentFiles()">Clear
+                    recent</button>
             </div>
         </details>
         <button disabled onclick="CircuitDesigner.toggleGrid()" id="gridToggle">Show grid</button> <!-- 新增按钮 -->
         <button disabled id="simuSetBtn" onclick="CircuitDesigner.showParamDialog()">Simulation setting</button>
         <button disabled id="runBtn" title="Running simulation" onclick="CircuitDesigner.run()">Run</button>
         <button disabled id="tuneBtn" title="Adjust model parameters" onclick="CircuitDesigner.tune()">Tune</button>
+        <button type="button" id="factoryBtn" title="Open LPM Surrogate Factory (same tab)"
+            onclick="CircuitDesigner.openFactory()">Factory</button>
         <button id="distVizBtn" title="Open parameter distribution from saved file"
             onclick="CircuitDesigner.openParamDistributionFile()">Dist</button>
         <button disabled id="saBtn" title="Parameter sensitivity analysis" onclick="CircuitDesigner.runSA()">SA</button>
@@ -1080,6 +1092,47 @@
                 <input type="checkbox" id="tuneRecordCurveCheckbox" checked>
                 Show waveform fit comparison
             </label>
+            <hr style="margin:12px 0;border:none;border-top:1px solid #ddd;">
+            <label class="tune-viz-option">
+                <input type="checkbox" id="tuneUseSurrogateCheckbox" onchange="CircuitDesigner.onTuneSurrogateToggle()">
+                Use surrogate model (accelerate Tune)
+            </label>
+            <div id="tuneSurrogatePanel" style="display:none;margin-top:8px;">
+                <p class="hint" style="margin:0 0 6px;">
+                    Choose a package from the scan list (Factory workspace).
+                    Configure roots in <code>application.yml</code> → <code>surrogate.packages-roots</code>.
+                    <a href="#" onclick="CircuitDesigner.openFactory(); return false;">Open Factory</a>
+                </p>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="tuneSurrogateSelect" style="min-width:280px;max-width:100%;"
+                        onchange="CircuitDesigner.onSurrogateSelectChange()"></select>
+                    <button type="button" class="cancel-btn" onclick="CircuitDesigner.refreshSurrogateList()">Refresh
+                        list</button>
+                </div>
+                <p class="hint" id="tuneSurrogatePath" style="margin:6px 0;word-break:break-all;">No package selected.
+                </p>
+                <div id="tuneSurrogateMeta" class="hint" style="max-height:120px;overflow:auto;white-space:pre-wrap;">
+                </div>
+                <p class="hint" style="margin-top:8px;">Output channels (must cover all target waveform columns; time is
+                    automatic):</p>
+                <div id="tuneSurrogateChannelBoxes"></div>
+                <label class="tune-viz-option" style="margin-top:8px;">
+                    LTspice verify Top-K
+                    <input type="number" id="tuneSurrogateVerifyTopK" min="0" max="999" value="1"
+                        style="width:64px;margin-left:6px;" title="From best downward; 0=off; max=population size">
+                </label>
+                <p class="hint" style="margin:2px 0 6px;">Top-K≥1: each generation re-simulates top K with LTspice
+                    (console table + live best overlay). Top-K=0: no per-generation verify; after the run finishes,
+                    the final best is LTspice-verified once for overlay. Does not change GA fitness.</p>
+                <label class="tune-viz-option">
+                    Device
+                    <select id="tuneSurrogateDevice">
+                        <option value="cpu" selected>cpu</option>
+                        <option value="cuda">cuda</option>
+                        <option value="auto">auto</option>
+                    </select>
+                </label>
+            </div>
         </div>
         <div class="dialog-footer">
             <button class="save-btn" id="tuneConfirmBtn" onclick="CircuitDesigner.confirmTune()">Start
@@ -1208,7 +1261,8 @@
         </div>
         <div class="dialog-body">
             <p class="hint">Please enter spice control command; Shift+Enter for a new line. Do not add a leading "."
-                (e.g. write <code>param XL1=111.1 rg 50 150</code>). The <code>rg lo hi</code> tag marks a variable for Tune
+                (e.g. write <code>param XL1=111.1 rg 50 150</code>). The <code>rg lo hi</code> tag marks a variable for
+                Tune
                 and is stripped before LTspice.</p>
             <textarea id="textCommandInput"></textarea>
         </div>
@@ -1322,13 +1376,13 @@
 
             // 在CircuitDesigner模块顶部添加
             const ComponentMeta = {
-                resistor: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
-                capacitor: { pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }] },
-                inductor: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
-                diode: { pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }] },
-                voltage: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
-                BVoltage: { pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }] },
-                ground: { pins: [{ x: 0, y: 0 }] }, label: { pins: [{ x: 0, y: 0 }] }
+                resistor: {pins: [{x: -40, y: 0}, {x: 40, y: 0}]},
+                capacitor: {pins: [{x: -32, y: 0}, {x: 32, y: 0}]},
+                inductor: {pins: [{x: -40, y: 0}, {x: 40, y: 0}]},
+                diode: {pins: [{x: -32, y: 0}, {x: 32, y: 0}]},
+                voltage: {pins: [{x: -40, y: 0}, {x: 40, y: 0}]},
+                BVoltage: {pins: [{x: -40, y: 0}, {x: 40, y: 0}]},
+                ground: {pins: [{x: 0, y: 0}]}, label: {pins: [{x: 0, y: 0}]}
             };
             // 在模块顶部添加状态变量
             let gridVisible = true; // 新增网格可见状态
@@ -1354,7 +1408,7 @@
             let wireStartPoint = null;
             //磁吸效果变量
             let draggingComponent = null;
-            let dragOffset = { x: 0, y: 0 };
+            let dragOffset = {x: 0, y: 0};
 
             const MAGNETIC_STRENGTH = 0.7; // 吸附强度系数 (0.1-0.5)
             const SNAP_THRESHOLD = GRID_SIZE * 0.4; // 完全吸附阈值
@@ -1363,9 +1417,9 @@
                 fileName: null,
                 components: [],
                 wires: [],
-                params: { stopTime: "1e-3", maxStep: "", saveTime: "" },
-                counters: { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 },
-                selected: { wire: null, component: null }, // 新增选中状态
+                params: {stopTime: "1e-3", maxStep: "", saveTime: ""},
+                counters: {R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1},
+                selected: {wire: null, component: null}, // 新增选中状态
                 elementStack: [], // 存储元素层级顺序 [{type:'wire',id}, {type:'comp',id}]
                 nodeInfo: {},// 新增节点信息存储
                 simulatedData: {},
@@ -1385,6 +1439,12 @@
                 tuneCancelRequested: false,
                 recordParamDistribution: false,
                 recordCurveComparison: true,
+                useSurrogate: false,
+                surrogatePackagePath: null,
+                surrogatePackageInfo: null,
+                surrogateChannels: [],
+                surrogateVerifyTopK: 1,
+                surrogateDevice: 'cpu',
                 tuneVizLiveSummary: null,
                 tuneVizHistoryData: null,
                 tuneCurveSummary: null,
@@ -1582,7 +1642,7 @@
                     // 原有元件拖拽逻辑
                     if (comp) {
                         draggingComponent = comp;
-                        dragOffset = { x: pos.x - comp.x, y: pos.y - comp.y };
+                        dragOffset = {x: pos.x - comp.x, y: pos.y - comp.y};
                     }
                     // 处理画布拖拽逻辑（新增部分）
                     if (currentMode === 'normal' && e.button === 0) {
@@ -1638,7 +1698,7 @@
                         const dx = pos.x - draggingWire.offsetX - wire.points[0].x;
                         const dy = pos.y - draggingWire.offsetY - wire.points[0].y;
 
-                        wire.points.forEach(p => { p.x += dx; p.y += dy; });
+                        wire.points.forEach(p => {p.x += dx; p.y += dy;});
 
                         // 锁定选中状态并清除悬停
                         state.selected.wire = wire;
@@ -1948,7 +2008,7 @@
                     return calculateLabelBounds(comp);
                 }
                 const template = ComponentTemplates[comp.type];
-                if (!template) return { left: 0, right: 0, top: 0, bottom: 0 };
+                if (!template) return {left: 0, right: 0, top: 0, bottom: 0};
 
                 // 计算旋转后的实际尺寸
                 const calcRotatedSize = (width, height, rotation) => {
@@ -1960,7 +2020,7 @@
                 };
 
                 // 获取元件原始尺寸
-                const { pins } = template;
+                const {pins} = template;
                 const minX = Math.min(...pins.map(p => p.x));
                 const maxX = Math.max(...pins.map(p => p.x));
                 const minY = Math.min(...pins.map(p => p.y));
@@ -1974,7 +2034,7 @@
 
 
                 // 计算旋转后尺寸
-                const { w, h } = calcRotatedSize(width, height, comp.rotation || 0);
+                const {w, h} = calcRotatedSize(width, height, comp.rotation || 0);
 
                 return {
                     left: comp.x - w / 2,
@@ -2006,23 +2066,23 @@
                 // 注意：引脚点在(0,0)，标签主体从(8, -12)到(8+labelWidth, 12)
                 const points = [
                     // 引脚线左端点 (x=0)
-                    { x: 0, y: 0 },
+                    {x: 0, y: 0},
 
                     // 标签主体左上角点 (x=8, y=-12)
-                    { x: pinLength, y: -labelHeight / 2 },
+                    {x: pinLength, y: -labelHeight / 2},
 
                     // 标签主体左下角点 (x=8, y=12)
-                    { x: pinLength, y: labelHeight / 2 },
+                    {x: pinLength, y: labelHeight / 2},
 
                     // 标签主体右下角点 (x=8+labelWidth, y=0附近)
-                    { x: pinLength + labelWidth, y: 0 },
+                    {x: pinLength + labelWidth, y: 0},
 
                     // 标签主体右上角点 (x=8+labelWidth-12, y=-12)
-                    { x: pinLength + labelWidth - 12, y: -labelHeight / 2 },
+                    {x: pinLength + labelWidth - 12, y: -labelHeight / 2},
                 ];
 
                 // 将旋转中心点(0,0)也添加进去
-                points.push({ x: 0, y: 0 });
+                points.push({x: 0, y: 0});
 
                 // 转换为世界坐标（考虑旋转和位置）
                 const rotatedPoints = points.map(p => {
@@ -2082,11 +2142,11 @@
 
                         // 绘制折线主体
                         const segments = [
-                            { x: -30, y: 0 }, { x: -25, y: -6 }, { x: -20, y: 0 },
-                            { x: -15, y: 6 }, { x: -10, y: 0 }, { x: -5, y: -6 },
-                            { x: 0, y: 0 }, { x: 5, y: 6 }, { x: 10, y: 0 },
-                            { x: 15, y: -6 }, { x: 20, y: 0 }, { x: 25, y: 6 },
-                            { x: 30, y: 0 }
+                            {x: -30, y: 0}, {x: -25, y: -6}, {x: -20, y: 0},
+                            {x: -15, y: 6}, {x: -10, y: 0}, {x: -5, y: -6},
+                            {x: 0, y: 0}, {x: 5, y: 6}, {x: 10, y: 0},
+                            {x: 15, y: -6}, {x: 20, y: 0}, {x: 25, y: 6},
+                            {x: 30, y: 0}
                         ];
 
                         ctx.beginPath();
@@ -2098,8 +2158,8 @@
                         ctx.restore();
                     },
                     pins: [
-                        { x: -40, y: 0 },  // 左引脚端点
-                        { x: 40, y: 0 }    // 右引脚端点
+                        {x: -40, y: 0},  // 左引脚端点
+                        {x: 40, y: 0}    // 右引脚端点
                     ]
                 },
                 capacitor: {
@@ -2127,7 +2187,7 @@
                         ctx.stroke();
                         ctx.restore();
                     },
-                    pins: [{ x: -32, y: 0 }, { x: 32, y: 0 }]  // 保持90px总引脚长度
+                    pins: [{x: -32, y: 0}, {x: 32, y: 0}]  // 保持90px总引脚长度
                 },
                 inductor: {
                     draw(ctx, x, y) {
@@ -2150,7 +2210,7 @@
                         ctx.stroke();
                         ctx.restore();
                     },
-                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                    pins: [{x: -40, y: 0}, {x: 40, y: 0}]
                 },
                 diode: {
                     draw(ctx, x, y) {
@@ -2191,8 +2251,8 @@
                         ctx.restore();
                     },
                     pins: [
-                        { x: -32, y: 0 },  // 与其他元件统一左引脚位置
-                        { x: 32, y: 0 }    // 与其他元件统一右引脚位置
+                        {x: -32, y: 0},  // 与其他元件统一左引脚位置
+                        {x: 32, y: 0}    // 与其他元件统一右引脚位置
                     ]
                 },
                 voltage: {
@@ -2220,7 +2280,7 @@
                         ctx.fillText('-', x + 2, y + 4);
                         ctx.restore();
                     },
-                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                    pins: [{x: -40, y: 0}, {x: 40, y: 0}]
                 },
                 BVoltage: {
                     draw(ctx, x, y) {
@@ -2247,7 +2307,7 @@
                         ctx.fillText('-', x + 2, y + 4);
                         ctx.restore();
                     },
-                    pins: [{ x: -40, y: 0 }, { x: 40, y: 0 }]
+                    pins: [{x: -40, y: 0}, {x: 40, y: 0}]
                 },
                 ground: {
                     draw(ctx, x, y) {
@@ -2269,7 +2329,7 @@
                         ctx.stroke();
                         ctx.restore();
                     },
-                    pins: [{ x: 0, y: 0 }],
+                    pins: [{x: 0, y: 0}],
                     // 添加实际图形尺寸信息
                     bounds: {
                         width: 40,   // 最宽横线的宽度
@@ -2334,7 +2394,7 @@
                         ctx.textBaseline = 'middle';
                         ctx.fillText(labelText, x + 8 + labelWidth / 2, y);
                     },
-                    pins: [{ x: 0, y: 0 }],
+                    pins: [{x: 0, y: 0}],
                     bounds: {
                         width: 32,   // 最宽横线的宽度
                         height: 24   // 从顶部到底部的距离
@@ -2578,7 +2638,7 @@
                 return defaults[type] || '';
             }
             // 修改鼠标移动事件处理
-            let lastMousePos = { clientX: 0, clientY: 0 };
+            let lastMousePos = {clientX: 0, clientY: 0};
 
             // 修改后的handleMouseMove处理
             function handleMouseMove(e) {
@@ -3038,7 +3098,7 @@
                         const varName = resolveSimVar(`V(${node})`);
                         if (!varName) continue;
                         minDistance = dist;
-                        best = { wire, nodeName: node, varName, distance: dist };
+                        best = {wire, nodeName: node, varName, distance: dist};
                     }
                 }
                 return best;
@@ -3052,7 +3112,7 @@
                 }
                 const varName = resolveSimVar(`I(${comp.name})`);
                 if (!varName) return null;
-                return { component: comp, varName };
+                return {component: comp, varName};
             }
 
             // 获取引脚点名称（node1或node2变量）
@@ -3098,12 +3158,12 @@
                 for (const wire of state.wires) {
                     // 检查起点
                     if (Math.hypot(pos.x - wire.points[0].x, pos.y - wire.points[0].y) < threshold) {
-                        return { wire: wire, index: 0 };
+                        return {wire: wire, index: 0};
                     }
                     // 检查终点
                     if (Math.hypot(pos.x - wire.points[wire.points.length - 1].x,
                         pos.y - wire.points[wire.points.length - 1].y) < threshold) {
-                        return { wire: wire, index: wire.points.length - 1 };
+                        return {wire: wire, index: wire.points.length - 1};
                     }
                 }
                 return null;
@@ -3116,7 +3176,7 @@
                 const t = Math.max(0, Math.min(1,
                     ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)
                 ));
-                const proj = { x: a.x + t * dx, y: a.y + t * dy };
+                const proj = {x: a.x + t * dx, y: a.y + t * dy};
                 return Math.hypot(p.x - proj.x, p.y - proj.y);
             }
 
@@ -3355,13 +3415,13 @@
                 // 检查组件类型是否存在且模板包含pins数组
                 const template = ComponentTemplates[type];
                 if (!template || !Array.isArray(template.pins)) {
-                    return { x: 0, y: 0 }; // 返回默认中心
+                    return {x: 0, y: 0}; // 返回默认中心
                 }
 
                 const pins = template.pins;
                 const sum = pins.reduce((acc, p) => {
-                    return { x: acc.x + p.x, y: acc.y + p.y };
-                }, { x: 0, y: 0 });
+                    return {x: acc.x + p.x, y: acc.y + p.y};
+                }, {x: 0, y: 0});
 
                 return {
                     x: sum.x / pins.length,
@@ -3537,9 +3597,9 @@
                 if (currentMode === 'wiring') applyGrid = true;
 
                 if (applyGrid) {
-                    return snapToGrid({ x: rawX, y: rawY });
+                    return snapToGrid({x: rawX, y: rawY});
                 }
-                return { x: rawX, y: rawY };
+                return {x: rawX, y: rawY};
             }
 
             // 动态磁吸算法
@@ -3576,7 +3636,7 @@
                 // 选择最优吸附点（最小移动距离）
                 const best = candidates.reduce((best, curr) =>
                     curr.priority < best.priority ? curr : best
-                    , { priority: Infinity });
+                    , {priority: Infinity});
 
                 // 强制完全吸附（覆盖渐进式效果）
                 return {
@@ -3621,11 +3681,11 @@
                 const threshold = 8;
                 // 检测起点
                 if (Math.hypot(pos.x - wire.points[0].x, pos.y - wire.points[0].y) < threshold) {
-                    return { wire: wire, index: 0 };
+                    return {wire: wire, index: 0};
                 }
                 // 检测终点
                 if (Math.hypot(pos.x - wire.points[1].x, pos.y - wire.points[1].y) < threshold) {
-                    return { wire: wire, index: 1 };
+                    return {wire: wire, index: 1};
                 }
                 return null;
             }
@@ -3659,7 +3719,7 @@
 
                         if (dist < 10 && dist < minDist) {
                             minDist = dist;
-                            nearest = { x: absX, y: absY };
+                            nearest = {x: absX, y: absY};
                         }
                     });
                 });
@@ -3838,10 +3898,10 @@
 
                         // 确保新导线方向正确
                         const newPoints = dirA === 'horizontal' ?
-                            [{ x: Math.min(remainingA.x, remainingB.x), y: connection.y },
-                            { x: Math.max(remainingA.x, remainingB.x), y: connection.y }] :
-                            [{ x: connection.x, y: Math.min(remainingA.y, remainingB.y) },
-                            { x: connection.x, y: Math.max(remainingA.y, remainingB.y) }];
+                            [{x: Math.min(remainingA.x, remainingB.x), y: connection.y},
+                            {x: Math.max(remainingA.x, remainingB.x), y: connection.y}] :
+                            [{x: connection.x, y: Math.min(remainingA.y, remainingB.y)},
+                            {x: connection.x, y: Math.max(remainingA.y, remainingB.y)}];
 
                         // 创建新导线并标记旧导线
                         state.wires.push({
@@ -3899,8 +3959,8 @@
             // 私有方法 - 获取所有导线信息
             function getAllWiresInfo() {
                 return state.wires.map(wire => ({
-                    start: { x: wire.points[0].x, y: wire.points[0].y },
-                    end: { x: wire.points[1].x, y: wire.points[1].y }
+                    start: {x: wire.points[0].x, y: wire.points[0].y},
+                    end: {x: wire.points[1].x, y: wire.points[1].y}
                 }));
             }
 
@@ -3946,9 +4006,9 @@
                     fileName: null,
                     components: [],
                     wires: [],
-                    params: { stopTime: "1e-3", maxStep: "", saveTime: "" },
-                    counters: { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 },
-                    selected: { wire: null, component: null }, // 新增选中状态
+                    params: {stopTime: "1e-3", maxStep: "", saveTime: ""},
+                    counters: {R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1},
+                    selected: {wire: null, component: null}, // 新增选中状态
                     elementStack: [], // 存储元素层级顺序 [{type:'wire',id}, {type:'comp',id}]
                     nodeInfo: {},// 新增节点信息存储
                     simulatedData: {},
@@ -3968,6 +4028,12 @@
                     tuneCancelRequested: false,
                     recordParamDistribution: false,
                     recordCurveComparison: true,
+                    useSurrogate: false,
+                    surrogatePackagePath: null,
+                    surrogatePackageInfo: null,
+                    surrogateChannels: [],
+                    surrogateVerifyTopK: 1,
+                    surrogateDevice: 'cpu',
                     tuneCurveSummary: null,
                     tuneCurveFitCharts: [],
                     tuneCurveFitExpanded: true,
@@ -4012,7 +4078,7 @@
                         rotation: c.rotation || 0,
                     })),
                     wires: (state.wires || []).map(w => ({
-                        points: (w.points || []).map(p => ({ x: p.x, y: p.y })),
+                        points: (w.points || []).map(p => ({x: p.x, y: p.y})),
                     })),
                 });
             }
@@ -4105,7 +4171,7 @@
             })
             // 辅助方法：更新元件名称计数器
             function updateCounters(components) {
-                const counters = { R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1 };
+                const counters = {R: 1, C: 1, L: 1, D: 1, V: 1, B: 1, GND: 1, Lab: 1};
 
                 components.forEach(comp => {
                     const match = comp.name.match(/^([^\d]+)(\d+)$/);
@@ -4396,7 +4462,7 @@
                     this.readoutEl = null;
                     this.statsEl = null;
                     this.cursorsEl = null;
-                    this.view = { xMin: 0, xMax: 1, yMin: -1, yMax: 1 };
+                    this.view = {xMin: 0, xMax: 1, yMin: -1, yMax: 1};
                     this.cursorA = null; // time
                     this.cursorB = null;
                     this.hover = null; // { t, v, px, py }
@@ -4417,7 +4483,7 @@
                 }
 
                 getMargin() {
-                    return { top: 18, right: 18, bottom: 36, left: 62 };
+                    return {top: 18, right: 18, bottom: 36, left: 62};
                 }
 
                 getPlotRect() {
@@ -4512,7 +4578,7 @@
                         this.windowElement.style.left = newLeft + 'px';
                         this.windowElement.style.top = newTop + 'px';
                     };
-                    this._onWinUp = () => { isDragging = false; };
+                    this._onWinUp = () => {isDragging = false;};
                     document.addEventListener('mousemove', this._onWinMove);
                     document.addEventListener('mouseup', this._onWinUp);
                 }
@@ -4533,7 +4599,7 @@
                         } else {
                             this.zoomAbout(factor, this.pixelToX(px));
                         }
-                    }, { passive: false });
+                    }, {passive: false});
 
                     canvas.addEventListener('mousedown', (e) => {
                         if (e.button !== 0) return;
@@ -4543,7 +4609,7 @@
                         this._plotDrag = {
                             x: e.clientX,
                             y: e.clientY,
-                            view: { ...this.view },
+                            view: {...this.view},
                             moved: false,
                             shift: e.shiftKey,
                         };
@@ -4871,7 +4937,7 @@
                     if (!this.hover) return;
                     const ctx = this.ctx;
                     const plot = this.getPlotRect();
-                    const { px, py } = this.hover;
+                    const {px, py} = this.hover;
                     if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) return;
 
                     ctx.save();
@@ -5010,14 +5076,14 @@
                 }
 
                 getUnitPrefix(range, baseUnit) {
-                    if (range >= 1e9) return { symbol: 'G' + baseUnit, scale: 1e9 };
-                    if (range >= 1e6) return { symbol: 'M' + baseUnit, scale: 1e6 };
-                    if (range >= 1e3) return { symbol: 'k' + baseUnit, scale: 1e3 };
-                    if (range >= 1) return { symbol: baseUnit, scale: 1 };
-                    if (range >= 1e-3) return { symbol: 'm' + baseUnit, scale: 1e-3 };
-                    if (range >= 1e-6) return { symbol: 'μ' + baseUnit, scale: 1e-6 };
-                    if (range >= 1e-9) return { symbol: 'n' + baseUnit, scale: 1e-9 };
-                    return { symbol: baseUnit, scale: 1 };
+                    if (range >= 1e9) return {symbol: 'G' + baseUnit, scale: 1e9};
+                    if (range >= 1e6) return {symbol: 'M' + baseUnit, scale: 1e6};
+                    if (range >= 1e3) return {symbol: 'k' + baseUnit, scale: 1e3};
+                    if (range >= 1) return {symbol: baseUnit, scale: 1};
+                    if (range >= 1e-3) return {symbol: 'm' + baseUnit, scale: 1e-3};
+                    if (range >= 1e-6) return {symbol: 'μ' + baseUnit, scale: 1e-6};
+                    if (range >= 1e-9) return {symbol: 'n' + baseUnit, scale: 1e-9};
+                    return {symbol: baseUnit, scale: 1};
                 }
 
                 xToPixel(x) {
@@ -5226,13 +5292,14 @@
             const TUNE_RECORD_VIZ_STORAGE_KEY = 'climps_tune_record_viz';
             const TUNE_RECORD_CURVE_STORAGE_KEY = 'climps_tune_record_curve';
             const TUNE_POLL_INTERVAL_MS = 30000;
+            const TUNE_POLL_INTERVAL_SURROGATE_MS = 2000;
             const TUNE_CURVE_DOWNSAMPLE_MAX = 1500;
             const RECENT_FILES_STORAGE_KEY = 'climps_recent_files';
             const RECENT_FILES_MAX = 8;
             const BACKEND_TASK_BUTTONS = {
-                run: { id: 'runBtn', idle: 'Run', busy: 'Running...' },
-                tune: { id: 'tuneBtn', idle: 'Tune', busy: 'Tuning...' },
-                sa: { id: 'saBtn', idle: 'SA', busy: 'SAnalyzing...' },
+                run: {id: 'runBtn', idle: 'Run', busy: 'Running...'},
+                tune: {id: 'tuneBtn', idle: 'Tune', busy: 'Tuning...'},
+                sa: {id: 'saBtn', idle: 'SA', busy: 'SAnalyzing...'},
             };
 
             function applyBackendTaskUI() {
@@ -5313,7 +5380,7 @@
                 const name = normalizeCircuitFileName(fileName);
                 if (!name) return;
                 const next = getRecentFiles().filter(item => item.fileName !== name);
-                next.unshift({ fileName: name, lastOpenedAt: Date.now() });
+                next.unshift({fileName: name, lastOpenedAt: Date.now()});
                 setRecentFiles(next);
             }
 
@@ -5480,19 +5547,19 @@
                                 count: nameMap.get(comp.name).count + 1,
                                 positions: [
                                     ...nameMap.get(comp.name).positions,
-                                    { x: comp.x, y: comp.y, type: comp.type }
+                                    {x: comp.x, y: comp.y, type: comp.type}
                                 ]
                             });
                             nameMap.set(comp.name, {
                                 count: nameMap.get(comp.name).count + 1,
                                 positions: [...nameMap.get(comp.name).positions,
-                                { x: comp.x, y: comp.y, type: comp.type }]
+                                {x: comp.x, y: comp.y, type: comp.type}]
                             });
                         } else {
                             // 首次记录名称
                             nameMap.set(comp.name, {
                                 count: 1,
-                                positions: [{ x: comp.x, y: comp.y, type: comp.type }]
+                                positions: [{x: comp.x, y: comp.y, type: comp.type}]
                             });
                         }
                     });
@@ -5513,7 +5580,7 @@
                         type: c.type,
                         name: c.name,
                         value: c.value,
-                        position: { x: c.x, y: c.y },
+                        position: {x: c.x, y: c.y},
                         rotation: c.rotation,
                         pins: ComponentMeta[c.type].pins.map(p => ({
                             x: c.x + p.x,
@@ -5569,7 +5636,7 @@
                         return;
                     }
                     prepareCanvasForLoad();
-                    axios.get(`http://127.0.0.1:8080/loadJson`, { params: { fileName: name } })
+                    axios.get(`http://127.0.0.1:8080/loadJson`, {params: {fileName: name}})
                         .then(res => {
                             if (res.data.code == 0) {
                                 removeRecentFile(name);
@@ -5990,8 +6057,195 @@
                     if (vizCb) vizCb.checked = state.recordParamDistribution;
                     const curveCb = document.getElementById('tuneRecordCurveCheckbox');
                     if (curveCb) curveCb.checked = state.recordCurveComparison !== false;
+                    const surrCb = document.getElementById('tuneUseSurrogateCheckbox');
+                    if (surrCb) surrCb.checked = !!state.useSurrogate;
+                    const kEl = document.getElementById('tuneSurrogateVerifyTopK');
+                    if (kEl) kEl.value = String(state.surrogateVerifyTopK != null ? state.surrogateVerifyTopK : 1);
+                    const devSel = document.getElementById('tuneSurrogateDevice');
+                    if (devSel) devSel.value = state.surrogateDevice || 'cpu';
+                    this.onTuneSurrogateToggle();
+                    this.refreshSurrogateChannelBoxes();
                     this.updateTuneDialogUI();
                     document.getElementById('tuneDialog').style.display = 'block';
+                },
+
+                openFactory() {
+                    const factoryUrl = (state.factoryWebUrl || 'http://127.0.0.1:8787/').replace(/\?.*$/, '');
+                    const returnUrl = window.location.href.startsWith('http')
+                        ? window.location.href
+                        : 'http://127.0.0.1:8080/current.html';
+                    // 同页跳转，避免再开标签；Factory 用 ?return= 返回
+                    window.location.href = factoryUrl
+                        + (factoryUrl.includes('?') ? '&' : '?')
+                        + 'return=' + encodeURIComponent(returnUrl);
+                },
+
+                onTuneSurrogateToggle() {
+                    const on = !!document.getElementById('tuneUseSurrogateCheckbox')?.checked;
+                    state.useSurrogate = on;
+                    const panel = document.getElementById('tuneSurrogatePanel');
+                    if (panel) panel.style.display = on ? 'block' : 'none';
+                    if (on) {
+                        this.loadSurrogateDefaults();
+                        this.refreshSurrogateList();
+                    }
+                },
+
+                loadSurrogateDefaults() {
+                    axios.get('http://127.0.0.1:8080/api/surrogate/defaults', {timeout: 10000})
+                        .then(res => {
+                            if (res.data.code == 0) return;
+                            const d = res.data.data || {};
+                            if (d.factoryWeb) state.factoryWebUrl = d.factoryWeb;
+                            if (d.verifyTopK != null && Number.isFinite(Number(d.verifyTopK))) {
+                                state.surrogateVerifyTopK = Math.max(0, Number(d.verifyTopK));
+                                const kEl = document.getElementById('tuneSurrogateVerifyTopK');
+                                if (kEl && document.activeElement !== kEl) {
+                                    kEl.value = String(state.surrogateVerifyTopK);
+                                }
+                            }
+                        })
+                        .catch(() => { /* ignore; panel keeps local default */});
+                },
+
+                applySurrogatePackageInfo(info) {
+                    state.surrogatePackagePath = info.packagePath;
+                    state.surrogatePackageInfo = info;
+                    if (info.factoryWeb) state.factoryWebUrl = info.factoryWeb;
+                    const pathEl = document.getElementById('tuneSurrogatePath');
+                    if (pathEl) pathEl.textContent = info.packagePath || '';
+                    const meta = info.manifest || {};
+                    const metrics = info.metrics || {};
+                    const lines = [];
+                    if (meta.job_id) lines.push('job_id: ' + meta.job_id);
+                    if (meta.input_names) lines.push('inputs: ' + meta.input_names.join(', '));
+                    if (meta.channel_names) lines.push('channels: ' + meta.channel_names.join(', '));
+                    if (meta.n_time != null) lines.push('n_time: ' + meta.n_time + '  t_record: ' + meta.t_record);
+                    if (meta.n_samples != null) lines.push('n_samples: ' + meta.n_samples);
+                    if (metrics.nrmse_mean_avg != null) {
+                        lines.push('test mean NRMSE: ' + (metrics.nrmse_mean_avg * 100).toFixed(2) + '%');
+                    }
+                    const metaEl = document.getElementById('tuneSurrogateMeta');
+                    if (metaEl) metaEl.textContent = lines.join('\n') || '(no manifest details)';
+                    const chans = meta.channel_names || [];
+                    const targetKeys = state.targetCurves
+                        ? Object.keys(state.targetCurves).filter(k => k.toLowerCase() !== 'time')
+                        : chans.slice();
+                    const lowerMap = {};
+                    chans.forEach(c => {lowerMap[c.toLowerCase()] = c;});
+                    state.surrogateChannels = [];
+                    targetKeys.forEach(t => {
+                        const hit = lowerMap[t.toLowerCase()];
+                        if (hit) state.surrogateChannels.push(hit);
+                    });
+                    if (!state.surrogateChannels.length) state.surrogateChannels = chans.slice();
+                    this.refreshSurrogateChannelBoxes();
+                },
+
+                refreshSurrogateList() {
+                    const sel = document.getElementById('tuneSurrogateSelect');
+                    const pathEl = document.getElementById('tuneSurrogatePath');
+                    if (pathEl) pathEl.textContent = 'Scanning packages…';
+                    if (typeof axios === 'undefined') {
+                        const msg = 'axios failed to load (check network / CDN). Refresh the page.';
+                        alert(msg);
+                        if (pathEl) pathEl.textContent = msg;
+                        return;
+                    }
+                    axios.get('http://127.0.0.1:8080/api/surrogate/list', {timeout: 30000})
+                        .then(res => {
+                            if (res.data.code == 0) {
+                                alert(res.data.msg || 'Failed to list packages');
+                                if (pathEl) pathEl.textContent = 'No package selected.';
+                                return;
+                            }
+                            const data = res.data.data || {};
+                            const packages = data.packages || [];
+                            state.surrogatePackageList = packages;
+                            if (data.factoryWeb) state.factoryWebUrl = data.factoryWeb;
+                            if (!sel) {
+                                if (pathEl) pathEl.textContent = 'No package selected.';
+                                return;
+                            }
+                            sel.innerHTML = '';
+                            const opt0 = document.createElement('option');
+                            opt0.value = '';
+                            opt0.textContent = packages.length
+                                ? ('— select a package (' + packages.length + ') —')
+                                : '— no packages found (check packages-roots) —';
+                            sel.appendChild(opt0);
+                            packages.forEach((p, i) => {
+                                const opt = document.createElement('option');
+                                opt.value = String(i);
+                                const nrmse = p.metrics && p.metrics.nrmse_mean_avg;
+                                const label = (p.displayName || p.packagePath || ('pkg-' + i))
+                                    + (nrmse != null ? ('  |  NRMSE ' + (nrmse * 100).toFixed(2) + '%') : '');
+                                opt.textContent = label;
+                                sel.appendChild(opt);
+                            });
+                            if (state.surrogatePackagePath) {
+                                const idx = packages.findIndex(p => p.packagePath === state.surrogatePackagePath);
+                                if (idx >= 0) {
+                                    sel.value = String(idx);
+                                    this.applySurrogatePackageInfo(packages[idx]);
+                                    return;
+                                }
+                            }
+                            if (pathEl) pathEl.textContent = 'No package selected.';
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            const msg = (err.response && err.response.data && err.response.data.msg)
+                                || err.message
+                                || 'Failed to list surrogate packages. Is backend running?';
+                            alert(msg);
+                            if (pathEl) pathEl.textContent = 'No package selected.';
+                        });
+                },
+
+                onSurrogateSelectChange() {
+                    const sel = document.getElementById('tuneSurrogateSelect');
+                    const idx = sel ? sel.value : '';
+                    if (idx === '' || idx == null) {
+                        state.surrogatePackagePath = null;
+                        state.surrogatePackageInfo = null;
+                        const pathEl = document.getElementById('tuneSurrogatePath');
+                        if (pathEl) pathEl.textContent = 'No package selected.';
+                        const metaEl = document.getElementById('tuneSurrogateMeta');
+                        if (metaEl) metaEl.textContent = '';
+                        const box = document.getElementById('tuneSurrogateChannelBoxes');
+                        if (box) box.innerHTML = '';
+                        return;
+                    }
+                    const pkg = (state.surrogatePackageList || [])[Number(idx)];
+                    if (pkg) this.applySurrogatePackageInfo(pkg);
+                },
+
+                refreshSurrogateChannelBoxes() {
+                    const box = document.getElementById('tuneSurrogateChannelBoxes');
+                    if (!box) return;
+                    box.innerHTML = '';
+                    const manifest = state.surrogatePackageInfo?.manifest || {};
+                    const chans = manifest.channel_names || [];
+                    const selected = new Set(state.surrogateChannels || []);
+                    chans.forEach(ch => {
+                        const label = document.createElement('label');
+                        label.className = 'tune-viz-option';
+                        label.style.display = 'inline-block';
+                        label.style.marginRight = '10px';
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.value = ch;
+                        cb.checked = selected.has(ch);
+                        cb.onchange = () => {
+                            state.surrogateChannels = Array.from(
+                                box.querySelectorAll('input[type=checkbox]:checked')
+                            ).map(el => el.value);
+                        };
+                        label.appendChild(cb);
+                        label.appendChild(document.createTextNode(' ' + ch));
+                        box.appendChild(label);
+                    });
                 },
 
                 confirmTune() {
@@ -6029,21 +6283,51 @@
                     model.textCommand = state.textCommand
                     state.recordParamDistribution = !!document.getElementById('tuneRecordVizCheckbox')?.checked;
                     state.recordCurveComparison = document.getElementById('tuneRecordCurveCheckbox')?.checked !== false;
+                    state.useSurrogate = !!document.getElementById('tuneUseSurrogateCheckbox')?.checked;
+                    const kRaw = parseInt(document.getElementById('tuneSurrogateVerifyTopK')?.value, 10);
+                    state.surrogateVerifyTopK = Number.isFinite(kRaw) ? Math.max(0, kRaw) : 1;
+                    state.surrogateDevice = document.getElementById('tuneSurrogateDevice')?.value || 'cpu';
+                    const chBoxes = document.getElementById('tuneSurrogateChannelBoxes');
+                    if (chBoxes) {
+                        state.surrogateChannels = Array.from(
+                            chBoxes.querySelectorAll('input[type=checkbox]:checked')
+                        ).map(el => el.value);
+                    }
                     sessionStorage.setItem(TUNE_RECORD_VIZ_STORAGE_KEY,
                         state.recordParamDistribution ? '1' : '0');
                     sessionStorage.setItem(TUNE_RECORD_CURVE_STORAGE_KEY,
                         state.recordCurveComparison ? '1' : '0');
 
+                    if (state.useSurrogate) {
+                        if (!state.surrogatePackagePath) {
+                            alert('Please select a surrogate package first.');
+                            return;
+                        }
+                        if (!state.surrogateChannels || !state.surrogateChannels.length) {
+                            alert('Please select at least one surrogate output channel.');
+                            return;
+                        }
+                    }
+
                     const confirmBtn = document.getElementById('tuneConfirmBtn');
                     this.closeTuneDialog();
                     if (confirmBtn) confirmBtn.disabled = true;
 
-                    axios.post('http://127.0.0.1:8080/tune/start', {
+                    const payload = {
                         model: model,
                         targetCurves: state.targetCurves,
                         recordParamDistribution: state.recordParamDistribution,
-                        recordCurveComparison: state.recordCurveComparison
-                    })
+                        recordCurveComparison: state.recordCurveComparison,
+                        useSurrogate: state.useSurrogate,
+                    };
+                    if (state.useSurrogate) {
+                        payload.surrogatePackagePath = state.surrogatePackagePath;
+                        payload.surrogateChannels = state.surrogateChannels;
+                        payload.surrogateVerifyTopK = state.surrogateVerifyTopK;
+                        payload.surrogateDevice = state.surrogateDevice;
+                    }
+
+                    axios.post('http://127.0.0.1:8080/tune/start', payload)
                         .then(res => {
                             if (res.data.code == 0) {
                                 alert(res.data.msg || "Failed to start tuning.");
@@ -6090,7 +6374,7 @@
                     this.pollTuneJobStatus(jobId);
                     state.tunePollTimer = setInterval(() => {
                         this.pollTuneJobStatus(jobId);
-                    }, TUNE_POLL_INTERVAL_MS);
+                    }, state.useSurrogate ? TUNE_POLL_INTERVAL_SURROGATE_MS : TUNE_POLL_INTERVAL_MS);
                 },
 
                 showTuneProgressDialog() {
@@ -6151,6 +6435,9 @@
                             }
                             const status = res.data.data;
                             if (!status) return;
+                            if (status.useSurrogate != null) {
+                                state.useSurrogate = !!status.useSurrogate;
+                            }
                             this.updateTuneProgressUI(status);
                             if (status.vizSummary) {
                                 this.updateTuneVizLive(status.vizSummary);
@@ -6158,6 +6445,7 @@
                                 this.hideTuneVizLive();
                             }
                             if (status.curveSummary) {
+                                // 与原先 Target/Best 一样：整包按代替换；后端同代写入 LTspice 后自然三线对齐
                                 this.updateTuneCurveFit(status.curveSummary);
                             } else if (!state.recordCurveComparison) {
                                 this.hideTuneCurveFit();
@@ -6196,6 +6484,9 @@
                     }
                     // Refresh message/percent one last time with terminal payload.
                     this.updateTuneProgressUI(status);
+                    if (status.curveSummary && state.recordCurveComparison !== false) {
+                        this.updateTuneCurveFit(status.curveSummary);
+                    }
                     if (status.percent == null || status.percent < 100) {
                         const barEl = document.getElementById('tuneProgressBar');
                         const percentEl = document.getElementById('tuneProgressPercent');
@@ -6234,7 +6525,7 @@
                                     const source = status.outputFolder
                                         ? `${status.outputFolder}/param-distribution.json`
                                         : null;
-                                    this.showTuneVizHistoryDialog(data, { sourceFileName: source });
+                                    this.showTuneVizHistoryDialog(data, {sourceFileName: source});
                                 }
                             })
                             .catch(err => console.warn('Tune viz history unavailable:', err))
@@ -6380,7 +6671,7 @@
 
                 buildTuneVizYAxisOptions(title, compactTicks, valueBounds) {
                     const yScale = {
-                        title: { display: true, text: title },
+                        title: {display: true, text: title},
                         beginAtZero: false,
                         grace: '8%',
                         ticks: {
@@ -6428,7 +6719,7 @@
                         });
                     });
                     if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
-                    return { min, max };
+                    return {min, max};
                 },
 
                 renderTuneDistributionChart(canvasId, chartStateKey, generations, statsMap) {
@@ -6438,11 +6729,11 @@
                         state[chartStateKey].destroy();
                         state[chartStateKey] = null;
                     }
-                    const { labels, datasets } = this.buildTuneDistributionDatasets(generations, statsMap);
+                    const {labels, datasets} = this.buildTuneDistributionDatasets(generations, statsMap);
                     const valueBounds = this.computeTuneDistributionValueBounds(generations, statsMap);
                     state[chartStateKey] = new Chart(canvas.getContext('2d'), {
                         type: 'bar',
-                        data: { labels, datasets },
+                        data: {labels, datasets},
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
@@ -6451,7 +6742,7 @@
                                 legend: {
                                     display: true,
                                     position: 'bottom',
-                                    labels: { boxWidth: 12, font: { size: 10 } },
+                                    labels: {boxWidth: 12, font: {size: 10}},
                                 },
                                 tooltip: {
                                     callbacks: {
@@ -6511,7 +6802,7 @@
                 },
 
                 renderTuneTrendLineChart(canvasId, chartStateKey, generations, values,
-                                         yTitle, lineColor, fillColor, compactYAxis) {
+                    yTitle, lineColor, fillColor, compactYAxis) {
                     const canvas = document.getElementById(canvasId);
                     if (!canvas || !generations || generations.length === 0) return;
                     if (state[chartStateKey]) {
@@ -6535,7 +6826,7 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
+                            plugins: {legend: {display: false}},
                             layout: this.buildTuneVizChartLayout(generations.length),
                             scales: {
                                 x: this.buildTuneVizCategoryXScale(generations.length),
@@ -6598,7 +6889,7 @@
                                 alert(err);
                                 return;
                             }
-                            this.showTuneVizHistoryDialog(data, { sourceFileName: file.name });
+                            this.showTuneVizHistoryDialog(data, {sourceFileName: file.name});
                         } catch (parseErr) {
                             console.error('param-distribution.json parse failed:', parseErr);
                             alert('Failed to read file. Please select a valid param-distribution.json.');
@@ -6752,14 +7043,14 @@
                     const xMax = timePoints[timePoints.length - 1];
                     const span = xMax - xMin;
                     if (!Number.isFinite(span) || span <= 0) {
-                        return { xMin, xMax, values: [xMin] };
+                        return {xMin, xMax, values: [xMin]};
                     }
                     const count = Math.max(2, tickCount);
                     const values = [];
                     for (let i = 0; i < count; i++) {
                         values.push(xMin + (span * i) / (count - 1));
                     }
-                    return { xMin, xMax, values };
+                    return {xMin, xMax, values};
                 },
 
                 buildTuneCurveFitChartOptions(xTicks) {
@@ -6767,18 +7058,18 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: false,
-                        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                        interaction: {mode: 'nearest', axis: 'x', intersect: false},
                         plugins: {
                             legend: {
                                 display: true,
                                 position: 'top',
                                 align: 'end',
-                                labels: { boxWidth: 10, boxHeight: 2, font: { size: 10 } },
+                                labels: {boxWidth: 10, boxHeight: 2, font: {size: 10}},
                             },
                         },
                         elements: {
-                            point: { radius: 0, hoverRadius: 3 },
-                            line: { borderWidth: 1.5 },
+                            point: {radius: 0, hoverRadius: 3},
+                            line: {borderWidth: 1.5},
                         },
                         scales: {
                             x: {
@@ -6787,30 +7078,30 @@
                                 max: xTicks.xMax,
                                 grace: 0,
                                 afterBuildTicks: (axis) => {
-                                    axis.ticks = xTicks.values.map((value) => ({ value }));
+                                    axis.ticks = xTicks.values.map((value) => ({value}));
                                 },
                                 ticks: {
                                     autoSkip: false,
                                     maxRotation: 0,
-                                    font: { size: 10 },
+                                    font: {size: 10},
                                     callback: (value) => this.formatTuneCurveFitTick(value),
                                 },
-                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                                grid: {color: 'rgba(148, 163, 184, 0.25)'},
                             },
                             y: {
-                                ticks: { maxTicksLimit: 4, font: { size: 10 } },
-                                grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                                ticks: {maxTicksLimit: 6, font: {size: 10}},
+                                grid: {color: 'rgba(148, 163, 184, 0.25)'},
                             },
                         },
                     };
                 },
 
-                renderTuneCurveFitChart(canvas, timePoints, targetPoints, bestPoints) {
+                renderTuneCurveFitChart(canvas, timePoints, targetPoints, bestPoints, ltspicePoints) {
                     const datasets = [];
                     if (targetPoints?.length) {
                         datasets.push({
                             label: 'Target',
-                            data: timePoints.map((t, i) => ({ x: t, y: targetPoints[i] })),
+                            data: timePoints.map((t, i) => ({x: t, y: targetPoints[i]})),
                             borderColor: '#94a3b8',
                             borderDash: [4, 3],
                             borderWidth: 1.5,
@@ -6819,10 +7110,20 @@
                     }
                     if (bestPoints?.length) {
                         datasets.push({
-                            label: 'Best',
-                            data: timePoints.map((t, i) => ({ x: t, y: bestPoints[i] })),
+                            label: state.useSurrogate ? 'Surrogate' : 'Best',
+                            data: timePoints.map((t, i) => ({x: t, y: bestPoints[i]})),
                             borderColor: '#2563eb',
                             borderWidth: 2,
+                            fill: false,
+                        });
+                    }
+                    if (ltspicePoints?.length) {
+                        datasets.push({
+                            label: 'LTspice',
+                            data: timePoints.map((t, i) => ({x: t, y: ltspicePoints[i]})),
+                            borderColor: '#dc2626',
+                            borderWidth: 1.5,
+                            borderDash: [2, 2],
                             fill: false,
                         });
                     }
@@ -6830,7 +7131,7 @@
                     const xTicks = this.computeTuneCurveFitXTicks(timePoints);
                     return new Chart(canvas.getContext('2d'), {
                         type: 'line',
-                        data: { datasets },
+                        data: {datasets},
                         options: this.buildTuneCurveFitChartOptions(xTicks),
                     });
                 },
@@ -6855,12 +7156,18 @@
                     if (fitness != null && Number.isFinite(fitness)) {
                         hintText += ` · best fitness ${this.formatTuneCurveRmse(fitness)}`;
                     }
+                    if (curveSummary.ltspiceCurves && Object.keys(curveSummary.ltspiceCurves).length) {
+                        hintText += ' · Target / Surrogate / LTspice';
+                    }
                     hintText += ' · sorted by RMSE (largest first)';
                     if (hint) hint.textContent = hintText;
 
                     const rmseMap = curveSummary.rmseByCurve || {};
                     const bestCurves = curveSummary.bestCurves || {};
+                    const ltCurves = curveSummary.ltspiceCurves || {};
+                    const ltRmse = curveSummary.ltspiceRmseByCurve || {};
                     const timePoints = curveSummary.time || [];
+                    const ltTime = curveSummary.ltspiceTime || [];
                     const curveNames = Object.keys(rmseMap)
                         .sort((a, b) => (rmseMap[b] ?? 0) - (rmseMap[a] ?? 0));
 
@@ -6881,7 +7188,12 @@
 
                         const title = document.createElement('p');
                         title.className = 'tune-curve-fit-title';
-                        title.innerHTML = `${name} · RMSE <span class="tune-curve-rmse">${this.formatTuneCurveRmse(rmse)}</span>`;
+                        let titleHtml = `${name} · Surrogate RMSE <span class="tune-curve-rmse">${this.formatTuneCurveRmse(rmse)}</span>`;
+                        const ltName = Object.keys(ltRmse).find(k => k.toLowerCase() === name.toLowerCase()) || name;
+                        if (ltRmse[ltName] != null) {
+                            titleHtml += ` · LTspice RMSE <span class="tune-curve-rmse">${this.formatTuneCurveRmse(ltRmse[ltName])}</span>`;
+                        }
+                        title.innerHTML = titleHtml;
 
                         const chartWrap = document.createElement('div');
                         chartWrap.className = 'tune-curve-fit-chart';
@@ -6900,8 +7212,22 @@
                                 state.targetCurves[name],
                                 timePoints
                             );
+                        } else if (targetTimes) {
+                            const tKey = Object.keys(state.targetCurves || {}).find(k => k.toLowerCase() === name.toLowerCase());
+                            if (tKey) {
+                                targetVals = this.resampleCurveAtTimes(
+                                    targetTimes,
+                                    state.targetCurves[tKey],
+                                    timePoints
+                                );
+                            }
                         }
-                        const chart = this.renderTuneCurveFitChart(canvas, timePoints, targetVals, bestVals);
+                        let ltVals = null;
+                        const ltKey = Object.keys(ltCurves).find(k => k.toLowerCase() === name.toLowerCase());
+                        if (ltKey && Array.isArray(ltCurves[ltKey]) && ltTime.length) {
+                            ltVals = this.resampleCurveAtTimes(ltTime, ltCurves[ltKey], timePoints);
+                        }
+                        const chart = this.renderTuneCurveFitChart(canvas, timePoints, targetVals, bestVals, ltVals);
                         if (chart) state.tuneCurveFitCharts.push(chart);
                     });
                 },
@@ -7036,13 +7362,16 @@
                                     if (status.vizSummary) {
                                         this.updateTuneVizLive(status.vizSummary);
                                     }
+                                    if (status.useSurrogate != null) {
+                                        state.useSurrogate = !!status.useSurrogate;
+                                    }
                                     if (status.curveSummary) {
                                         this.updateTuneCurveFit(status.curveSummary);
                                     }
                                     stopTunePolling();
                                     state.tunePollTimer = setInterval(() => {
                                         this.pollTuneJobStatus(jobId);
-                                    }, TUNE_POLL_INTERVAL_MS);
+                                    }, state.useSurrogate ? TUNE_POLL_INTERVAL_SURROGATE_MS : TUNE_POLL_INTERVAL_MS);
                                 } else {
                                     clearTuneJobSession();
                                 }
@@ -7133,7 +7462,7 @@
                     axios.post('http://127.0.0.1:8080/sensitivityAnalysis', {
                         model: model,
                         variationRatio: ratio
-                    }, { timeout: 600000 })
+                    }, {timeout: 600000})
                         .then(res => {
                             if (res.data.code == 0) {
                                 alert(res.data.msg || "Analysis failed.");
@@ -7191,7 +7520,7 @@
                         rotation: c.rotation
                     })),
                     wires: state.wires.map(w => ({
-                        points: w.points.map(p => ({ x: p.x, y: p.y }))
+                        points: w.points.map(p => ({x: p.x, y: p.y}))
                     }))
                 }),
                 //临时方法，用来查看CircuitDesign中的变量状况
@@ -7263,7 +7592,7 @@
 
                         const ctx = canvas.getContext('2d');
                         const data = state.simulatedData;
-                        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+                        const margin = {top: 20, right: 30, bottom: 40, left: 50};
 
                         // 计算坐标范围
                         const xValues = data.time;
@@ -7322,8 +7651,8 @@
                             options: {
                                 responsive: false,
                                 scales: {
-                                    x: { title: { display: true, text: 'Time (s)' } },
-                                    y: { title: { display: true, text: 'Value' } }
+                                    x: {title: {display: true, text: 'Time (s)'}},
+                                    y: {title: {display: true, text: 'Value'}}
                                 }
                             }
                         });
